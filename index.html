@@ -1,289 +1,81 @@
-<!DOCTYPE html>
-<html lang="zh-HK">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>影片群組分享清單</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f6f9;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        }
-        h1 {
-            color: #ff0000;
-            margin-top: 0;
-            font-size: 26px;
-        }
-        
-        /* Tab 樣式 */
-        .tabs-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-            flex-wrap: wrap;
-        }
-        .tab-btn {
-            background: #e4e6eb;
-            color: #333;
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .tab-btn:hover {
-            background: #d8dadf;
-        }
-        .tab-btn.active {
-            background: #ff0000;
-            color: white;
-        }
+<!-- 引入 Firebase SDK (使用 9+ 模組化版本) -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-        /* 後台管理區 */
-        .admin-section {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #fff5f5;
-            border: 1px solid #ffe3e3;
-            border-radius: 8px;
-        }
-        .admin-block {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #eee;
-            margin-bottom: 15px;
-        }
-        .admin-block h4 {
-            margin-top: 0;
-            color: #444;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 5px;
-        }
-        textarea {
-            width: 100%;
-            height: 100px;
-            padding: 12px;
-            box-sizing: border-box;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-family: monospace;
-            margin-bottom: 10px;
-        }
-        input[type="text"] {
-            padding: 8px 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            margin-right: 10px;
-            margin-bottom: 10px;
-        }
-        button {
-            background-color: #ff0000;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 14px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-bottom: 5px;
-        }
-        button:hover {
-            background-color: #cc0000;
-        }
-        .btn-secondary { background-color: #666; }
-        .btn-secondary:hover { background-color: #444; }
-        .btn-danger { background-color: #dc3545; }
-        .btn-danger:hover { background-color: #bd2130; }
+    // 1. 呢度已經完美幫你對接好你新開嘅 Realtime Database 網址
+    const firebaseConfig = {
+        apiKey: "AIzaSyBl7yqNoQQBZOt2v6aN_wre1if7cXGFOns",
+        authDomain: "fir-836a9.firebaseapp.com",
+        databaseURL: "https://fir-836a9-default-rtdb.firebaseio.com/", // 👈 呢度同你個資料庫連線
+        projectId: "fir-836a9",
+        storageBucket: "fir-836a9.firebasestorage.app",
+        messagingSenderId: "229605718156",
+        appId: "1:229605718156:web:533d91c7a0907212a7a3a9"
+    };
 
-        /* 表格與列表 */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        th, td {
-            padding: 12px 14px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-        }
-        .btn-view {
-            display: inline-block;
-            background: #f1f1f1;
-            color: #333;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 14px;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .btn-view:hover {
-            background: #ff0000;
-            color: white;
-        }
-        
-        /* 拖放排序樣式 */
-        tr.draggable {
-            cursor: move;
-        }
-        tr.draggable:active {
-            background-color: #fff1f1;
-        }
-        tr.drag-over {
-            border-top: 3px solid #ff0000;
-        }
-        .drag-handle {
-            color: #aaa;
-            margin-right: 8px;
-            cursor: move;
-            font-weight: bold;
-            user-select: none;
-        }
+    // 初始化 Firebase
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const dbRef = ref(database, 'video_data'); // 喺資料庫建立一個叫 video_data 的節點
 
-        .hidden { display: none !important; }
-        
-        .admin-login-trigger {
-            position: fixed;
-            bottom: 15px;
-            right: 15px;
-            font-size: 12px;
-            color: #ccc;
-            cursor: pointer;
-            user-select: none;
-        }
-        .admin-login-trigger:hover { color: #ff0000; }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h1>🎬 影片分享清單</h1>
-    
-    <!-- 頂部 Tabs 切換區 -->
-    <div class="tabs-container" id="tabsContainer"></div>
-    
-    <!-- 管理員後台 -->
-    <div class="admin-section hidden" id="adminArea">
-        <h3 style="margin-top: 0; color: #ff0000; display:flex; justify-content:space-between;">
-            <span>🔐 管理員後台</span>
-            <button onclick="lockAdmin()" class="btn-secondary" style="margin:0;">隱藏後台</button>
-        </h3>
-        
-        <!-- 1. 管理 Tab 與 順序操作 -->
-        <div class="admin-block">
-            <h4>1. 分頁（Tab）與 影片順序管理</h4>
-            <div style="margin-bottom: 15px;">
-                <input type="text" id="newTabName" placeholder="新分頁名稱 (例如: Zoo)">
-                <button onclick="addTab()">新增分頁</button>
-            </div>
-            <div style="border-top: 1px solid #f1f1f1; padding-top: 10px;">
-                <strong style="font-size: 14px; color: #333;">當前分頁動作：</strong>
-                <button onclick="flipOrder()" style="background-color: #28a745; margin-right: 10px;">🔄 一鍵倒序 (Flip 1,2,3 → 3,2,1)</button>
-                <button onclick="removeCurrentTab()" class="btn-danger">🗑️ 刪除整個分頁</button>
-            </div>
-        </div>
-
-        <!-- 2. 批量匯入影片 -->
-        <div class="admin-block">
-            <h4>2. 批量匯入影片 (自動解析)</h4>
-            <textarea id="rawInput" placeholder="TankShow 10 360	https://youtu.be/A5ruMMW0_vY"></textarea>
-            <button onclick="importVideos()">解析並加進當前分頁</button>
-        </div>
-    </div>
-
-    <!-- 影片顯示表格 -->
-    <table id="videoTable">
-        <thead>
-            <tr>
-                <th>影片名稱</th>
-                <th style="width: 120px;">觀看</th>
-                <th class="admin-ctrl hidden" style="width: 100px;">管理</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
-</div>
-
-<div class="admin-login-trigger" onclick="checkPassword()">🔒 Admin</div>
-
-<script>
+    // 你原本寫死嘅預備數據（當資料庫全空時才會寫入）
     const defaultData = {
         "TankShow": [
             { title: "TankShow 10 360", url: "https://youtu.be/A5ruMMW0_vY" },
-            { title: "TankShow 10", url: "https://youtu.be/haUWQOHag5s" },
-            { title: "TankShow 9 360", url: "https://youtu.be/m1p065SjmUg" },
-            { title: "TankShow 9", url: "https://youtu.be/-oKF0DePxew" },
-            { title: "TankShow 8 360", url: "https://youtu.be/hMtX_QGJsdQ" },
-            { title: "TankShow 8", url: "https://youtu.be/PDpnGTuuuHc" },
-            { title: "TankShow 7 360", url: "https://youtu.be/H_R3Ej3on_s" },
-            { title: "TankShow 7", url: "https://youtu.be/R3dhReuqg8A" },
-            { title: "TankShow 6 360", url: "https://youtu.be/FqfNRBBdkjk" },
-            { title: "TankShow 6", url: "https://youtu.be/kwpFhStc0VM" },
-            { title: "TankShow 5 360", url: "https://youtu.be/98Mk-vKoYFs" },
-            { title: "TankShow 5", url: "https://youtu.be/K34vMxiIXwQ" },
-            { title: "TankShow 4 360", url: "https://youtu.be/8-aBc7QEaxk" },
-            { title: "TankShow 4", url: "https://youtu.be/2QAxFwwRpQE" },
-            { title: "TankShow 3 360", url: "https://youtu.be/MSyskem5Yr0" },
-            { title: "TankShow 3", url: "https://youtu.be/ddE6x26SGk4" },
-            { title: "TankShow 2 360", url: "https://youtu.be/nkJ-YXQHnnY" },
-            { title: "TankShow 2", url: "https://youtu.be/o89vUGDvOcY" },
-            { title: "TankShow 1 360", url: "https://youtu.be/7pF0yDVWpuw" },
-            { title: "TankShow 1", url: "https://youtu.be/1rubymeLgpA" },
-            { title: "TankShow 8 (Dup)", url: "https://youtu.be/JcqKCRhl_KI" }
+            { title: "TankShow 10", url: "https://youtu.be/haUWQOHag5s" }
         ],
         "Zoo": [
-            { title: "可愛熊貓日常", url: "https://youtu.be/範例網址1" },
-            { title: "企鵝餵食秀", url: "https://youtu.be/範例網址2" }
+            { title: "可愛熊貓日常", url: "https://youtu.be/範例網址1" }
         ]
     };
 
-    let db = {}; 
-    let currentTab = "";
-    let isAdminMode = false;
-    let dragSrcIndex = null; // 紀錄被拖拽影片的 index
+    // 全域變數
+    window.db = {}; 
+    window.currentTab = "";
+    window.isAdminMode = false;
+    let dragSrcIndex = null;
 
-    window.onload = function() {
-        const savedData = localStorage.getItem('multi_tab_videos');
-        if (savedData) {
-            db = JSON.parse(savedData);
+    // 2. 監聽 Firebase 資料庫狀態
+    onValue(dbRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            window.db = data;
         } else {
-            db = defaultData;
+            // 如果資料庫係空的（第一次開），初始化寫入預設數據
+            window.db = defaultData;
+            saveToStorage();
         }
-        const tabs = Object.keys(db);
-        currentTab = tabs.length > 0 ? tabs[0] : "";
+        
+        // 自動鎖定當前 Tab 位置
+        const tabs = Object.keys(window.db);
+        if (!window.currentTab || !window.db[window.currentTab]) {
+            window.currentTab = tabs.length > 0 ? tabs[0] : "";
+        }
+        
         renderTabs();
         renderTable();
-    };
+    });
 
-    function renderTabs() {
+    // 3. 儲存邏輯：直接推送到 Firebase 雲端
+    window.saveToStorage = function() {
+        set(dbRef, window.db)
+            .then(() => console.log("Firebase 同步成功！"))
+            .catch((error) => console.error("同步失敗：", error));
+    }
+
+    // --- 以下為 UI 渲染與操作邏輯 ---
+
+    window.renderTabs = function() {
         const container = document.getElementById('tabsContainer');
+        if (!container) return;
         container.innerHTML = '';
-        Object.keys(db).forEach(tabName => {
+        Object.keys(window.db).forEach(tabName => {
             const btn = document.createElement('button');
-            btn.className = `tab-btn ${tabName === currentTab ? 'active' : ''}`;
+            btn.className = `tab-btn ${tabName === window.currentTab ? 'active' : ''}`;
             btn.innerText = tabName;
             btn.onclick = function() {
-                currentTab = tabName;
+                window.currentTab = tabName;
                 renderTabs();
                 renderTable();
             };
@@ -291,24 +83,22 @@
         });
     }
 
-    function renderTable() {
+    window.renderTable = function() {
         const tbody = document.getElementById('tableBody');
+        if (!tbody) return;
         tbody.innerHTML = '';
 
-        if (!currentTab || !db[currentTab] || db[currentTab].length === 0) {
-            tbody.innerHTML = `<tr><td colspan="${isAdminMode ? 3 : 2}" style="text-align:center; color:#999;">此分頁暫無影片</td></tr>`;
+        if (!window.currentTab || !window.db[window.currentTab] || window.db[window.currentTab].length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${window.isAdminMode ? 3 : 2}" style="text-align:center; color:#999;">此分頁暫無影片</td></tr>`;
             return;
         }
 
-        db[currentTab].forEach((item, index) => {
+        window.db[window.currentTab].forEach((item, index) => {
             const tr = document.createElement('tr');
             
-            // 如果是 Admin 模式，賦予拖拽屬性與事件
-            if (isAdminMode) {
+            if (window.isAdminMode) {
                 tr.draggable = true;
                 tr.className = "draggable";
-                
-                // Drag & Drop 事件監聽
                 tr.addEventListener('dragstart', (e) => handleDragStart(e, index));
                 tr.addEventListener('dragover', handleDragOver);
                 tr.addEventListener('dragenter', (e) => tr.classList.add('drag-over'));
@@ -319,20 +109,17 @@
                 });
             }
             
-            // 影片名稱 (Admin 模式加個 ☰ 符號提示可拖動)
             const tdTitle = document.createElement('td');
-            const handle = isAdminMode ? `<span class="drag-handle">☰</span>` : '';
+            const handle = window.isAdminMode ? `<span class="drag-handle">☰</span>` : '';
             tdTitle.innerHTML = `${handle}<strong>${item.title}</strong>`;
             tr.appendChild(tdTitle);
 
-            // 觀看連結
             const tdView = document.createElement('td');
             tdView.innerHTML = `<a class="btn-view" href="${item.url}" target="_blank">▶ 開啟影片</a>`;
             tr.appendChild(tdView);
 
-            // 管理（刪除掣）
             const tdCtrl = document.createElement('td');
-            tdCtrl.className = `admin-ctrl ${isAdminMode ? '' : 'hidden'}`;
+            tdCtrl.className = `admin-ctrl ${window.isAdminMode ? '' : 'hidden'}`;
             tdCtrl.innerHTML = `<button onclick="deleteVideo(${index})" class="btn-danger" style="padding: 5px 10px; font-size: 12px; margin:0;">刪除</button>`;
             tr.appendChild(tdCtrl);
 
@@ -340,58 +127,42 @@
         });
     }
 
-    /* --- Drag and Drop 核心邏輯 --- */
     function handleDragStart(e, index) {
         dragSrcIndex = index;
         e.dataTransfer.effectAllowed = 'move';
-        // 為了相容部分瀏覽器
         e.dataTransfer.setData('text/plain', index);
     }
 
     function handleDragOver(e) {
-        if (e.preventDefault) {
-            e.preventDefault(); 
-        }
+        if (e.preventDefault) e.preventDefault(); 
         e.dataTransfer.dropEffect = 'move';
         return false;
     }
 
     function handleDrop(e, targetIndex) {
-        if (e.stopPropagation) {
-            e.stopPropagation(); 
-        }
-        
-        // 如果拖動到自己身上，就不作處理
+        if (e.stopPropagation) e.stopPropagation(); 
         if (dragSrcIndex !== null && dragSrcIndex !== targetIndex) {
-            // 從原本位置提取，並插入到新位置
-            const targetArray = db[currentTab];
+            const targetArray = window.db[window.currentTab];
             const movedItem = targetArray.splice(dragSrcIndex, 1)[0];
             targetArray.splice(targetIndex, 0, movedItem);
             
             saveToStorage();
-            renderTable();
         }
         dragSrcIndex = null;
     }
 
-    /* --- 2. 翻轉順序 (Flip Order) --- */
-    function flipOrder() {
-        if (!currentTab || !db[currentTab] || db[currentTab].length <= 1) return;
-        
-        // 直接將 Array 反轉
-        db[currentTab].reverse();
-        
+    window.flipOrder = function() {
+        if (!window.currentTab || !window.db[window.currentTab] || window.db[window.currentTab].length <= 1) return;
+        window.db[window.currentTab].reverse();
         saveToStorage();
-        renderTable();
-        alert(`已成功翻轉「${currentTab}」內所有影片的排列順序！`);
+        alert(`已成功翻轉「${window.currentTab}」內所有影片的排列順序！`);
     }
 
-    /* --- 後台權限與其餘基礎功能 --- */
-    function checkPassword() {
-        if (isAdminMode) return alert("你已經處於管理員模式。");
+    window.checkPassword = function() {
+        if (window.isAdminMode) return alert("你已經處於管理員模式。");
         const password = prompt("請輸入管理員密碼：");
         if (password === "3005") {
-            isAdminMode = true;
+            window.isAdminMode = true;
             document.getElementById('adminArea').classList.remove('hidden');
             document.querySelectorAll('.admin-ctrl').forEach(el => el.classList.remove('hidden'));
             renderTable();
@@ -401,43 +172,35 @@
         }
     }
 
-    function lockAdmin() {
-        isAdminMode = false;
+    window.lockAdmin = function() {
+        window.isAdminMode = false;
         document.getElementById('adminArea').classList.add('hidden');
         document.querySelectorAll('.admin-ctrl').forEach(el => el.classList.add('hidden'));
         renderTable();
     }
 
-    function saveToStorage() {
-        localStorage.setItem('multi_tab_videos', JSON.stringify(db));
-    }
-
-    function addTab() {
+    window.addTab = function() {
         const name = document.getElementById('newTabName').value.trim();
         if (!name) return alert('請輸入分頁名稱！');
-        if (db[name]) return alert('此分頁名稱已存在！');
-        db[name] = [];
-        currentTab = name;
+        if (window.db[name]) return alert('此分頁名稱已存在！');
+        window.db[name] = [];
+        window.currentTab = name;
         document.getElementById('newTabName').value = '';
         saveToStorage();
-        renderTabs();
-        renderTable();
     }
 
-    function removeCurrentTab() {
-        if (!currentTab) return;
-        if (confirm(`確定要刪除整個「${currentTab}」分頁嗎？`)) {
-            delete db[currentTab];
-            const remainingTabs = Object.keys(db);
-            currentTab = remainingTabs.length > 0 ? remainingTabs[0] : "";
+    window.removeCurrentTab = function() {
+        if (!window.currentTab) return;
+        if (confirm(`確定要刪除整個「${window.currentTab}」分頁嗎？`)) {
+            delete window.db[window.currentTab];
+            const remainingTabs = Object.keys(window.db);
+            window.currentTab = remainingTabs.length > 0 ? remainingTabs[0] : "";
             saveToStorage();
-            renderTabs();
-            renderTable();
         }
     }
 
-    function importVideos() {
-        if (!currentTab) return alert('請先選擇或創建一個分頁！');
+    window.importVideos = function() {
+        if (!window.currentTab) return alert('請先選擇或創建一個分頁！');
         const input = document.getElementById('rawInput').value.trim();
         if (!input) return alert('請先貼上影片資料！');
 
@@ -450,7 +213,7 @@
                 const title = parts[0].trim();
                 const url = parts[parts.length - 1].trim(); 
                 if (url.startsWith('http')) {
-                    db[currentTab].push({ title, url });
+                    window.db[window.currentTab].push({ title, url });
                     count++;
                 }
             }
@@ -458,7 +221,6 @@
 
         if (count > 0) {
             saveToStorage();
-            renderTable();
             document.getElementById('rawInput').value = '';
             alert(`成功追加了 ${count} 條影片！`);
         } else {
@@ -466,14 +228,10 @@
         }
     }
 
-    function deleteVideo(index) {
-        if (confirm(`確定要刪除影片「${db[currentTab][index].title}」嗎？`)) {
-            db[currentTab].splice(index, 1);
+    window.deleteVideo = function(index) {
+        if (confirm(`確定要刪除影片「${window.db[window.currentTab][index].title}」嗎？`)) {
+            window.db[window.currentTab].splice(index, 1);
             saveToStorage();
-            renderTable();
         }
     }
 </script>
-
-</body>
-</html>
