@@ -52,13 +52,24 @@
         input[type="text"], textarea { width: 100%; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card-bg); font-size: 14px; outline: none; transition: border 0.2s; }
         input[type="text"]:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
 
-        /* 分頁標籤樣式 */
-        #tabsContainer { display: flex; gap: 8px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+        /* 分頁群組導覽欄 */
+        #tabsContainer { display: flex; gap: 12px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 12px; border-bottom: 1px solid var(--border); align-items: center; }
         #tabsContainer::-webkit-scrollbar { height: 4px; }
         #tabsContainer::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-        .tab-btn { padding: 10px 20px; border-radius: 20px; border: 1px solid transparent; background: transparent; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; font-size: 15px; }
-        .tab-btn:hover { color: var(--text-main); background: #edf2f7; }
-        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25); }
+        
+        /* 管理員模式下的分頁膠囊包裝 */
+        .tab-wrapper { display: inline-flex; align-items: center; background: #e2e8f0; border-radius: 24px; padding: 3px; gap: 2px; transition: all 0.2s; }
+        .tab-wrapper.active { background: var(--primary); }
+        
+        .tab-btn { padding: 8px 18px; border-radius: 20px; border: none; background: transparent; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; font-size: 14px; }
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-wrapper.active .tab-btn { color: white; }
+        
+        /* 分頁移動小箭頭 */
+        .tab-move-btn { border: none; background: rgba(255, 255, 255, 0.6); color: #333; width: 22px; height: 22px; border-radius: 50%; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.1s; }
+        .tab-move-btn:hover { background: #fff; transform: scale(1.1); }
+        .tab-wrapper.active .tab-move-btn { background: rgba(255, 255, 255, 0.2); color: white; }
+        .tab-wrapper.active .tab-move-btn:hover { background: rgba(255, 255, 255, 0.4); }
 
         /* 影片卡片網格 */
         .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
@@ -83,7 +94,7 @@
         .btn-play-link { text-decoration: none; color: var(--primary); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
         .btn-play-link:hover { color: var(--primary-hover); }
 
-        /* 拖拽排序狀態 */
+        /* 拖拽影片排序狀態 */
         .video-card.draggable { cursor: grab; }
         .video-card.draggable:active { cursor: grabbing; }
         .video-card.drag-over { border: 2px dashed var(--primary); transform: scale(0.98); }
@@ -114,7 +125,7 @@
             <h3>🛠️ 管理員控制台</h3>
             <div class="admin-actions">
                 <button onclick="lockAdmin()" class="btn">🚪 登出系統</button>
-                <button onclick="flipOrder()" class="btn">↕️ 顛倒目前順序</button>
+                <button onclick="flipOrder()" class="btn">↕️ 顛倒目前影片順序</button>
                 <button onclick="removeCurrentTab()" class="btn btn-danger">🗑️ 刪除目前分頁</button>
             </div>
             
@@ -214,6 +225,7 @@
                 .catch((err) => console.error("同步失敗", err));
         }
 
+        // 渲染分頁標籤（整合管理員移動排序按鈕）
         window.renderTabs = function() {
             const container = document.getElementById('tabsContainer');
             if (!container) return;
@@ -225,17 +237,87 @@
                 return;
             }
 
-            tabs.forEach(tabName => {
-                const btn = document.createElement('button');
-                btn.className = `tab-btn ${tabName === window.currentTab ? 'active' : ''}`;
-                btn.innerText = tabName;
-                btn.onclick = function() {
-                    window.currentTab = tabName;
-                    window.renderTabs();
-                    window.renderCards();
-                };
-                container.appendChild(btn);
+            tabs.forEach((tabName, index) => {
+                // 如果是管理員，用膠囊外框包裝按鈕與方向鍵
+                if (window.isAdminMode) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = `tab-wrapper ${tabName === window.currentTab ? 'active' : ''}`;
+                    
+                    // 左移按鈕
+                    const leftBtn = document.createElement('button');
+                    leftBtn.className = 'tab-move-btn';
+                    leftBtn.innerText = '◀';
+                    leftBtn.title = '向左移動群組';
+                    leftBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        moveTabOrder(index, -1);
+                    };
+                    wrapper.appendChild(leftBtn);
+                    
+                    // 分頁切換本體
+                    const btn = document.createElement('button');
+                    btn.className = 'tab-btn';
+                    btn.innerText = tabName;
+                    btn.onclick = function() {
+                        window.currentTab = tabName;
+                        window.renderTabs();
+                        window.renderCards();
+                    };
+                    wrapper.appendChild(btn);
+                    
+                    // 右移按鈕
+                    const rightBtn = document.createElement('button');
+                    rightBtn.className = 'tab-move-btn';
+                    rightBtn.innerText = '▶';
+                    rightBtn.title = '向右移動群組';
+                    rightBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        moveTabOrder(index, 1);
+                    };
+                    wrapper.appendChild(rightBtn);
+                    
+                    container.appendChild(wrapper);
+                } else {
+                    // 一般用戶模式：保持純按鈕外觀
+                    const btn = document.createElement('button');
+                    btn.className = `tab-btn ${tabName === window.currentTab ? 'active' : ''}`;
+                    btn.innerText = tabName;
+                    btn.style.background = tabName === window.currentTab ? 'var(--primary)' : '#edf2f7';
+                    btn.style.color = tabName === window.currentTab ? 'white' : 'var(--text-muted)';
+                    btn.onclick = function() {
+                        window.currentTab = tabName;
+                        window.renderTabs();
+                        window.renderCards();
+                    };
+                    container.appendChild(btn);
+                }
             });
+        }
+
+        // 【新增核心邏輯】移動分頁權限順序
+        function moveTabOrder(currentIndex, direction) {
+            const tabs = Object.keys(window.db || {});
+            const targetIndex = currentIndex + direction;
+            
+            // 邊界檢查
+            if (targetIndex < 0 || targetIndex >= tabs.length) return;
+            
+            // 交換 Key 的順序
+            const tempTabs = [...tabs];
+            const movedTab = tempTabs.splice(currentIndex, 1)[0];
+            tempTabs.splice(targetIndex, 0, movedTab);
+            
+            // 重新重組 JS 物件的鍵值順序
+            const newDb = {};
+            tempTabs.forEach(key => {
+                newDb[key] = window.db[key];
+            });
+            
+            window.db = newDb;
+            
+            // 本地即時更新，並同步雲端
+            window.renderTabs();
+            window.saveToStorage();
         }
 
         window.renderCards = function() {
@@ -323,21 +405,17 @@
             });
         }
 
-        // 【修正核心】修正新增分頁連動與即時渲染邏輯
         window.addTab = function() {
             const input = document.getElementById('newTabName');
             const name = input ? input.value.trim() : '';
             if (!name) return alert('請填寫分頁名稱');
-            
-            // 確保物件結構完整
             if (!window.db) window.db = {};
             if (window.db[name]) return alert('此名稱已存在');
             
-            window.db[name] = []; // 建立空陣列群組
-            window.currentTab = name; // 切換過去
-            input.value = ''; // 清空輸入框
+            window.db[name] = [];
+            window.currentTab = name;
+            input.value = '';
             
-            // 立即執行本機渲染，讓 UI 馬上變更，再同步雲端
             window.renderTabs();
             window.renderCards();
             window.saveToStorage();
@@ -401,6 +479,7 @@
                 window.isAdminMode = true;
                 document.getElementById('adminArea').classList.remove('hidden');
                 document.getElementById('adminLoginBtn').innerText = "🔒 鎖定後台";
+                window.renderTabs(); // 重新渲染分頁以加上移動箭頭
                 window.renderCards();
             } else if (password !== null) {
                 alert("密碼不正確！");
@@ -411,6 +490,7 @@
             window.isAdminMode = false;
             document.getElementById('adminArea').classList.add('hidden');
             document.getElementById('adminLoginBtn').innerText = "🔑 管理員登入";
+            window.renderTabs(); // 還原一般分頁模式
             window.renderCards();
         }
 
