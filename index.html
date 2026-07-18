@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canada Videos</title>
+    <title>精選影片庫</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -113,7 +113,7 @@
 
     <div class="container">
         <header>
-            <h1>Canada Videos</h1>
+            <h1>精選影片庫</h1>
             <div>
                 <button id="adminLoginBtn" onclick="checkPassword()" class="btn">🔑 管理員登入</button>
             </div>
@@ -379,7 +379,7 @@
                 const actions = document.createElement('div');
                 actions.className = 'card-actions';
 
-                // 如果是管理員模式，先保留底部容器擺放「刪除」按鈕
+                // 如果是管理員模式，保留底部容器擺放「刪除」按鈕
                 if (window.isAdminMode) {
                     const delBtn = document.createElement('button');
                     delBtn.className = 'btn btn-danger';
@@ -390,7 +390,6 @@
                     actions.appendChild(delBtn);
                 }
 
-                // 只有在有管理員按鈕或者需要排版底部時才載入 actions 區塊
                 if (window.isAdminMode) {
                     info.appendChild(actions);
                 }
@@ -428,6 +427,7 @@
             }
         }
 
+        // 升級優化版：支援單空格、多空格、Tab 的智能解析匯入函數
         window.importVideos = function() {
             if (!window.currentTab) return alert('請先建立或選擇分頁群組！');
             const textarea = document.getElementById('rawInput');
@@ -439,11 +439,19 @@
             let count = 0;
 
             lines.forEach(line => {
-                const parts = line.split(/\t| {2,}/); 
-                if (parts.length >= 2) {
-                    const title = parts[0].trim();
-                    const url = parts[parts.length - 1].trim(); 
-                    if (url.startsWith('http')) {
+                line = line.trim();
+                if (!line) return;
+
+                // 尋找最後一個空格（不論是 Tab 還是普通空格）
+                const lastSpaceIndex = line.lastIndexOf(' ');
+                const lastTabIndex = line.lastIndexOf('\t');
+                const splitIndex = Math.max(lastSpaceIndex, lastTabIndex);
+
+                if (splitIndex !== -1) {
+                    const title = line.substring(0, splitIndex).trim();
+                    const url = line.substring(splitIndex + 1).trim();
+
+                    if (url.startsWith('http') && title) {
                         if(!window.db[window.currentTab]) window.db[window.currentTab] = [];
                         window.db[window.currentTab].push({ title, url });
                         count++;
