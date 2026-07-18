@@ -44,6 +44,9 @@
             flex-shrink: 0;
             position: relative;
             z-index: 50;
+            height: 100vh;
+            position: sticky;
+            top: 0;
         }
         
         /* 當側邊欄被收摺時 */
@@ -59,6 +62,7 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
         }
         .sidebar-header h2 { font-size: 18px; font-weight: 700; color: var(--text-main); }
 
@@ -70,9 +74,10 @@
             gap: 8px;
             overflow-y: auto;
             flex-grow: 1;
+            -webkit-overflow-scrolling: touch; /* 解決 iOS 滾動卡頓 */
         }
         
-        /* 直排分頁按鈕 */
+        /* 直排分頁按鈕 - 優化 iOS 渲染 */
         .tab-btn {
             width: 100%;
             padding: 12px 16px;
@@ -88,7 +93,13 @@
             overflow: hidden;
             text-overflow: ellipsis;
             font-size: 14px;
-            display: block;
+            
+            /* 針對 iOS 顯示不全的關鍵修正 */
+            display: flex;
+            align-items: center;
+            line-height: normal; 
+            height: auto;
+            min-height: 44px; /* 符合 iOS 點擊熱區規範，防止文字被夾緊截斷 */
         }
         .tab-btn:hover { color: var(--text-main); background: #f1f5f9; }
         .tab-btn.active { background: #eef2ff; color: var(--primary); border-left: 4px solid var(--primary); border-radius: 4px var(--radius) var(--radius) 4px; }
@@ -115,24 +126,25 @@
             margin-bottom: 32px;
             border-bottom: 1px solid var(--border);
             padding-bottom: 16px;
+            flex-shrink: 0;
         }
         header h1 { font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; margin-right: auto; }
 
         /* 按鈕設計 */
-        .btn { padding: 8px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+        .btn { padding: 8px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; -webkit-appearance: none; }
         .btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
         .btn-primary { background: var(--primary); color: white; border: none; }
         .btn-primary:hover { background: var(--primary-hover); }
         .btn-danger { background: #fee2e2; color: var(--danger); border: none; }
         .btn-danger:hover { background: #fca5a5; color: var(--danger-hover); }
-        .btn-toggle { padding: 8px 12px; background: var(--card-bg); font-size: 16px; }
+        .btn-toggle { padding: 8px 12px; background: var(--card-bg); font-size: 16px; height: 38px; }
 
         /* 管理員後台面板 */
         #adminArea { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(8px); border: 1px solid var(--border); padding: 24px; border-radius: var(--radius); margin-bottom: 32px; box-shadow: var(--shadow-lg); }
         #adminArea h3 { margin-bottom: 16px; font-size: 18px; }
         .admin-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
         .admin-input-group { display: flex; gap: 10px; margin-bottom: 16px; }
-        input[type="text"], textarea { width: 100%; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card-bg); font-size: 14px; outline: none; transition: border 0.2s; }
+        input[type="text"], textarea { width: 100%; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card-bg); font-size: 14px; outline: none; transition: border 0.2s; -webkit-appearance: none; }
         input[type="text"]:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
 
         /* 影片卡片網格 */
@@ -162,11 +174,22 @@
 
         .status-msg { text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 15px; grid-column: 1 / -1; }
 
+        /* 📱 針對流動端與 iOS 的響應式優化：保持左側欄，不移到頂部 */
         @media (max-width: 768px) {
-            body { flex-direction: column; }
-            aside { width: 100%; border-right: none; border-bottom: 1px solid var(--border); height: auto; max-height: 300px; }
-            aside.folded { height: 0; max-height: 0; }
+            body { display: flex; flex-direction: row; }
+            aside {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+            }
+            main {
+                padding: 16px;
+                width: 100%;
+            }
             .video-grid { grid-template-columns: 1fr; gap: 16px; }
+            header h1 { font-size: 18px; }
         }
     </style>
 </head>
@@ -307,7 +330,6 @@
                 .catch((err) => console.error("同步失敗", err));
         }
 
-        // 渲染側邊直排分頁（完美保留拖曳排序、雙擊修改功能）
         window.renderTabs = function() {
             const container = document.getElementById('tabsContainer');
             if (!container) return;
@@ -319,7 +341,6 @@
                 return;
             }
 
-            // 更新網頁頂部的主標題提示當前分頁
             const mainTitle = document.getElementById('mainTitle');
             if(mainTitle && window.currentTab) {
                 mainTitle.innerText = `精選影片庫 ➔ ${window.currentTab}`;
@@ -335,7 +356,6 @@
                     btn.classList.add('draggable');
                     btn.title = "🤝 按住上下拖曳排序 / 🖱️ 連點兩下修改名稱";
                     
-                    // 雙擊修改分頁名稱
                     btn.ondblclick = function(e) {
                         e.stopPropagation();
                         const newName = prompt(`請輸入「${tabName}」的新分頁名稱：`, tabName);
@@ -364,7 +384,6 @@
                         }
                     };
 
-                    // 分頁拖曳事件（直向排序）
                     btn.addEventListener('dragstart', (e) => {
                         tabDragSrcIndex = index;
                     });
@@ -398,6 +417,10 @@
                     window.currentTab = tabName;
                     window.renderTabs();
                     window.renderCards();
+                    // 在移動端點擊群組後自動收摺，提供更好體驗
+                    if (window.innerWidth <= 768) {
+                        window.toggleSidebar();
+                    }
                 };
                 container.appendChild(btn);
             });
