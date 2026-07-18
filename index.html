@@ -91,9 +91,7 @@
         .video-info { padding: 16px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between; gap: 12px; }
         .video-title { font-size: 15px; font-weight: 600; color: var(--text-main); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 42px; }
         
-        .card-actions { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
-        .btn-play-link { text-decoration: none; color: var(--primary); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
-        .btn-play-link:hover { color: var(--primary-hover); }
+        .card-actions { display: flex; justify-content: flex-end; align-items: center; margin-top: auto; }
 
         /* 拖拽影片排序狀態 */
         .video-card.draggable { cursor: grab; }
@@ -226,7 +224,7 @@
                 .catch((err) => console.error("同步失敗", err));
         }
 
-        // 渲染分頁標籤（整合管理員移動排序按鈕）
+        // 渲染分頁標籤
         window.renderTabs = function() {
             const container = document.getElementById('tabsContainer');
             if (!container) return;
@@ -239,12 +237,10 @@
             }
 
             tabs.forEach((tabName, index) => {
-                // 如果是管理員，用膠囊外框包裝按鈕與方向鍵
                 if (window.isAdminMode) {
                     const wrapper = document.createElement('div');
                     wrapper.className = `tab-wrapper ${tabName === window.currentTab ? 'active' : ''}`;
                     
-                    // 左移按鈕
                     const leftBtn = document.createElement('button');
                     leftBtn.className = 'tab-move-btn';
                     leftBtn.innerText = '◀';
@@ -255,7 +251,6 @@
                     };
                     wrapper.appendChild(leftBtn);
                     
-                    // 分頁切換本體
                     const btn = document.createElement('button');
                     btn.className = 'tab-btn';
                     btn.innerText = tabName;
@@ -266,7 +261,6 @@
                     };
                     wrapper.appendChild(btn);
                     
-                    // 右移按鈕
                     const rightBtn = document.createElement('button');
                     rightBtn.className = 'tab-move-btn';
                     rightBtn.innerText = '▶';
@@ -279,7 +273,6 @@
                     
                     container.appendChild(wrapper);
                 } else {
-                    // 一般用戶模式：保持純按鈕外觀
                     const btn = document.createElement('button');
                     btn.className = `tab-btn ${tabName === window.currentTab ? 'active' : ''}`;
                     btn.innerText = tabName;
@@ -295,28 +288,23 @@
             });
         }
 
-        // 移動分頁權限順序
+        // 移動分頁順序
         function moveTabOrder(currentIndex, direction) {
             const tabs = Object.keys(window.db || {});
             const targetIndex = currentIndex + direction;
             
-            // 邊界檢查
             if (targetIndex < 0 || targetIndex >= tabs.length) return;
             
-            // 交換 Key 的順序
             const tempTabs = [...tabs];
             const movedTab = tempTabs.splice(currentIndex, 1)[0];
             tempTabs.splice(targetIndex, 0, movedTab);
             
-            // 重新重組 JS 物件的鍵值順序
             const newDb = {};
             tempTabs.forEach(key => {
                 newDb[key] = window.db[key];
             });
             
             window.db = newDb;
-            
-            // 本地即時更新，並同步雲端
             window.renderTabs();
             window.saveToStorage();
         }
@@ -359,7 +347,7 @@
                     });
                 }
 
-                // 將封面圖同播放圖示包裝入 <a> 標籤，點擊直接導向 YouTube
+                // 點擊縮圖即可另開新視窗觀看
                 const thumbLink = document.createElement('a');
                 thumbLink.className = 'thumb-link';
                 thumbLink.href = item.url || '#';
@@ -390,13 +378,8 @@
 
                 const actions = document.createElement('div');
                 actions.className = 'card-actions';
-                const link = document.createElement('a');
-                link.className = 'btn-play-link';
-                link.href = item.url || '#';
-                link.target = '_blank';
-                link.innerHTML = '觀看影片 ↗';
-                actions.appendChild(link);
 
+                // 如果是管理員模式，先保留底部容器擺放「刪除」按鈕
                 if (window.isAdminMode) {
                     const delBtn = document.createElement('button');
                     delBtn.className = 'btn btn-danger';
@@ -407,7 +390,11 @@
                     actions.appendChild(delBtn);
                 }
 
-                info.appendChild(actions);
+                // 只有在有管理員按鈕或者需要排版底部時才載入 actions 區塊
+                if (window.isAdminMode) {
+                    info.appendChild(actions);
+                }
+                
                 card.appendChild(info);
                 wrapper.appendChild(card);
             });
@@ -487,7 +474,7 @@
                 window.isAdminMode = true;
                 document.getElementById('adminArea').classList.remove('hidden');
                 document.getElementById('adminLoginBtn').innerText = "🔒 鎖定後台";
-                window.renderTabs(); // 重新渲染分頁以加上移動箭頭
+                window.renderTabs(); 
                 window.renderCards();
             } else if (password !== null) {
                 alert("密碼不正確！");
@@ -498,7 +485,7 @@
             window.isAdminMode = false;
             document.getElementById('adminArea').classList.add('hidden');
             document.getElementById('adminLoginBtn').innerText = "🔑 管理員登入";
-            window.renderTabs(); // 還原一般分頁模式
+            window.renderTabs(); 
             window.renderCards();
         }
 
