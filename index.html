@@ -95,15 +95,11 @@
             display: flex;
             align-items: center;
             line-height: normal; 
-            height: 44px; /* iOS 最佳點擊熱區高度 */
+            height: 44px;
             box-sizing: border-box;
         }
         .tab-btn:hover { color: var(--text-main); background: #f1f5f9; }
         .tab-btn.active { background: #eef2ff; color: var(--primary); border-left: 4px solid var(--primary); border-radius: 4px var(--radius) var(--radius) 4px; }
-        
-        .tab-btn.draggable { cursor: grab; }
-        .tab-btn.draggable:active { cursor: grabbing; }
-        .tab-btn.drag-over { border: 2px dashed var(--primary); background: #f5f3ff; }
 
         /* 右側主內容區 */
         main {
@@ -113,10 +109,10 @@
             display: flex;
             flex-direction: column;
             width: 100%;
-            min-width: 0; /* 防止 Flex 子元素溢出 */
+            min-width: 0;
         }
 
-        /* 👑 頂部導航欄核心優化 */
+        /* 頂部導航欄 */
         header {
             display: flex;
             align-items: center;
@@ -134,14 +130,13 @@
             align-items: center;
             gap: 10px;
             flex-grow: 1;
-            min-width: 0; /* 讓內部文字超出時可以變省略號 */
+            min-width: 0;
         }
 
         header h1 { 
             font-size: 18px; 
             font-weight: 700; 
             color: var(--text-main); 
-            letter-spacing: -0.3px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -164,15 +159,13 @@
             justify-content: center;
             gap: 6px; 
             white-space: nowrap;
-            -webkit-appearance: none; /* 移除 iOS 預設按鈕渲染 */
+            -webkit-appearance: none;
             flex-shrink: 0;
         }
         .btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
         .btn-primary { background: var(--primary); color: white; border: none; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-danger { background: #fee2e2; color: var(--danger); border: none; }
-        .btn-danger:hover { background: #fca5a5; color: var(--danger-hover); }
         .btn-toggle { padding: 0 10px; font-size: 14px; }
+        .btn-danger { background: #fee2e2; color: var(--danger); border: none; }
 
         /* 管理員後台面板 */
         #adminArea { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); border: 1px solid var(--border); padding: 20px; border-radius: var(--radius); margin-bottom: 24px; box-shadow: var(--shadow-lg); }
@@ -180,7 +173,6 @@
         .admin-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
         .admin-input-group { display: flex; gap: 8px; margin-bottom: 14px; }
         
-        /* 針對 iOS 修正輸入框：字體必須 16px 或以上，否則點擊時畫面會自動放大放大 */
         input[type="text"], textarea { 
             width: 100%; 
             padding: 10px 12px; 
@@ -189,40 +181,38 @@
             background: var(--card-bg); 
             font-size: 16px; 
             outline: none; 
-            transition: border 0.2s; 
             -webkit-appearance: none; 
         }
-        input[type="text"]:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
 
         /* 影片卡片網格 */
         .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        
-        .video-card { background: var(--card-bg); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; display: flex; flex-direction: column; }
-        
+        .video-card { background: var(--card-bg); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; flex-direction: column; }
         .thumb-link { display: block; width: 100%; aspect-ratio: 16 / 9; text-decoration: none; position: relative; overflow: hidden; }
         .thumb-wrapper { width: 100%; height: 100%; background: #e2e8f0; position: relative; }
         .thumb-img { width: 100%; height: 100%; object-fit: cover; }
-        
-        .play-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
-        .video-card:hover .play-overlay { opacity: 1; }
-        .play-icon { width: 44px; height: 44px; background: rgba(255,255,255,0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 16px; }
-
         .video-info { padding: 14px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between; gap: 10px; }
         .video-title { font-size: 14px; font-weight: 600; color: var(--text-main); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 38px; }
-        
-        .card-actions { display: flex; justify-content: flex-end; align-items: center; margin-top: auto; }
-
-        .video-card.draggable { cursor: grab; }
-        .video-card.drag-over { border: 2px dashed var(--primary); }
-        .drag-badge { position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.6); color: white; padding: 3px 6px; border-radius: 4px; font-size: 10px; z-index: 10; pointer-events: none; }
-
         .status-msg { text-align: center; padding: 50px 20px; color: var(--text-muted); font-size: 14px; grid-column: 1 / -1; }
 
-        /* 📱 超強 iOS / 流動端響應式 UI 優化 */
+        /* 📱 手機版遮罩層（用於點擊影片區收摺選單） */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.15); /* 輕微暗化背景，增加層次感 */
+            backdrop-filter: blur(2px);
+            z-index: 90; /* 剛好喺側邊欄 (100) 下面 */
+            transition: opacity 0.3s ease;
+        }
+
+        /* 📱 流動端響應式 UI */
         @media (max-width: 768px) {
             body { position: relative; }
             
-            /* 將側邊欄改為滑出式抽屜（Drawer）避免擠壓頂部 */
+            /* 側邊欄抽屜化 */
             aside {
                 position: fixed;
                 left: 0;
@@ -235,8 +225,18 @@
             
             aside.folded {
                 transform: translateX(-100%);
-                width: var(--sidebar-width); /* 保持寬度以便動畫流暢 */
+                width: var(--sidebar-width);
                 border-right-color: transparent;
+                box-shadow: none;
+            }
+
+            /* 當選單打開時，顯示遮罩層 */
+            body:not(.sidebar-closed) .sidebar-overlay {
+                display: block;
+            }
+            
+            body.sidebar-closed .sidebar-overlay {
+                display: none;
             }
             
             main {
@@ -245,15 +245,15 @@
                 width: 100%;
             }
 
-            header h1 {
-                font-size: 15px; /* 縮小字體防止 iPhone 塞唔落 */
-            }
-            
+            header h1 { font-size: 15px; }
             .video-grid { grid-template-columns: 1fr; gap: 14px; }
         }
     </style>
 </head>
-<body>
+<body class="sidebar-closed"> <!-- 預設手機端狀態為已收摺 -->
+
+    <!-- 手機端專用點擊收摺遮罩 -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebarOnMobile()"></div>
 
     <!-- 左側邊欄 -->
     <aside id="sidebar">
@@ -293,7 +293,7 @@
             </div>
             
             <div style="margin-bottom: 12px;">
-                <textarea id="rawInput" rows="4" placeholder="💡 智能匯入支援「自動建群」格式：&#10;[新分頁名稱]&#10;影片標題1 https://youtu.be/xxx"></textarea>
+                <textarea id="rawInput" rows="4" placeholder="智能匯入支援「自動建群」格式..."></textarea>
             </div>
             <button onclick="importVideos()" class="btn btn-primary" style="width: 100%;">⚡ 智能解析並匯入影片</button>
         </div>
@@ -322,8 +322,7 @@
 
         const defaultData = {
             "TankShow": [
-                { title: "TankShow 10 360 現場精采片段", url: "https://youtu.be/A5ruMMW0_vY" },
-                { title: "TankShow 10 完整紀錄檔", url: "https://youtu.be/haUWQOHag5s" }
+                { title: "TankShow 10 360 現場精采片段", url: "https://youtu.be/A5ruMMW0_vY" }
             ],
             "動物精選": [
                 { title: "可愛大熊貓的搞笑日常派對", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }
@@ -333,26 +332,43 @@
         window.db = {}; 
         window.currentTab = "";
         window.isAdminMode = false;
-        let dragSrcIndex = null;
-        let tabDragSrcIndex = null;
 
-        // 初始化判斷手機端預設收摺
+        // 🚀 初始化判斷：手機端預設收摺側邊欄
         if (window.innerWidth <= 768) {
             document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById('sidebar').classList.add('folded');
                 document.getElementById('toggleExpandBtn').classList.remove('hidden');
+                document.body.className = "sidebar-closed";
             });
+        } else {
+            document.body.className = "sidebar-open";
         }
 
+        // 🔄 切換側邊欄狀態
         window.toggleSidebar = function() {
             const sidebar = document.getElementById('sidebar');
             const toggleExpandBtn = document.getElementById('toggleExpandBtn');
+            
             if (sidebar.classList.contains('folded')) {
                 sidebar.classList.remove('folded');
                 toggleExpandBtn.classList.add('hidden');
+                document.body.className = "sidebar-open";
             } else {
                 sidebar.classList.add('folded');
                 toggleExpandBtn.classList.remove('hidden');
+                document.body.className = "sidebar-closed";
+            }
+        }
+
+        // 📱 手機版點擊影片部分（遮罩）時觸發的收摺函數
+        window.closeSidebarOnMobile = function() {
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                const toggleExpandBtn = document.getElementById('toggleExpandBtn');
+                
+                sidebar.classList.add('folded');
+                toggleExpandBtn.classList.remove('hidden');
+                document.body.className = "sidebar-closed";
             }
         }
 
@@ -360,13 +376,8 @@
             if (!url) return 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&q=80';
             let videoId = null;
             try {
-                if (url.includes('youtu.be/')) {
-                    videoId = url.split('youtu.be/')[1].split(/[?#]/)[0];
-                } else if (url.includes('v=')) {
-                    videoId = url.split('v=')[1].split('&')[0].split(/[?#]/)[0];
-                } else if (url.includes('embed/')) {
-                    videoId = url.split('embed/')[1].split(/[?#]/)[0];
-                }
+                if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1].split(/[?#]/)[0];
+                else if (url.includes('v=')) videoId = url.split('v=')[1].split('&')[0].split(/[?#]/)[0];
             } catch(e) { console.error(e); }
             return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&q=80';
         }
@@ -374,27 +385,18 @@
         dbRef.on('value', (snapshot) => {
             try {
                 const data = snapshot.val();
-                if (data && Object.keys(data).length > 0) {
-                    window.db = data;
-                } else {
-                    window.db = defaultData;
-                    window.saveToStorage();
-                }
-                
+                window.db = (data && Object.keys(data).length > 0) ? data : defaultData;
                 const tabs = Object.keys(window.db);
                 if (!window.currentTab || !window.db[window.currentTab]) {
                     window.currentTab = tabs.length > 0 ? tabs[0] : "";
                 }
-                
                 window.renderTabs();
                 window.renderCards();
             } catch (error) { console.error(error); }
         });
 
         window.saveToStorage = function() {
-            dbRef.set(window.db)
-                .then(() => console.log("雲端同步成功"))
-                .catch((err) => console.error("同步失敗", err));
+            dbRef.set(window.db).catch((err) => console.error("同步失敗", err));
         }
 
         window.renderTabs = function() {
@@ -403,76 +405,20 @@
             container.innerHTML = '';
             
             const tabs = Object.keys(window.db || {});
-            if(tabs.length === 0) {
-                container.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px 8px;">💡 沒有分頁</div>';
-                return;
-            }
-
             const mainTitle = document.getElementById('mainTitle');
-            if(mainTitle && window.currentTab) {
-                mainTitle.innerText = `${window.currentTab}`;
-            }
+            if(mainTitle && window.currentTab) mainTitle.innerText = `${window.currentTab}`;
 
-            tabs.forEach((tabName, index) => {
+            tabs.forEach((tabName) => {
                 const btn = document.createElement('button');
                 btn.className = `tab-btn ${tabName === window.currentTab ? 'active' : ''}`;
                 btn.innerText = `📁 ${tabName}`;
                 
-                if (window.isAdminMode) {
-                    btn.draggable = true;
-                    btn.classList.add('draggable');
-                    
-                    btn.ondblclick = function(e) {
-                        e.stopPropagation();
-                        const newName = prompt(`請輸入「${tabName}」的新名稱：`, tabName);
-                        if (newName && newName.trim() !== "" && newName.trim() !== tabName) {
-                            const trimmedName = newName.trim();
-                            if (window.db[trimmedName]) return alert("名稱已存在！");
-                            
-                            const newDb = {};
-                            Object.keys(window.db).forEach(key => {
-                                if (key === tabName) { newDb[trimmedName] = window.db[tabName]; } 
-                                else { newDb[key] = window.db[key]; }
-                            });
-                            
-                            window.db = newDb;
-                            if (window.currentTab === tabName) window.currentTab = trimmedName;
-                            window.renderTabs();
-                            window.saveToStorage();
-                        }
-                    };
-
-                    btn.addEventListener('dragstart', (e) => tabDragSrcIndex = index);
-                    btn.addEventListener('dragover', (e) => e.preventDefault());
-                    btn.addEventListener('dragenter', () => btn.classList.add('drag-over'));
-                    btn.addEventListener('dragleave', () => btn.classList.remove('drag-over'));
-                    btn.addEventListener('drop', (e) => {
-                        e.stopPropagation();
-                        if (tabDragSrcIndex !== null && tabDragSrcIndex !== index) {
-                            const tempTabs = Object.keys(window.db);
-                            const movedTabKey = tempTabs.splice(tabDragSrcIndex, 1)[0];
-                            tempTabs.splice(index, 0, movedTabKey);
-                            
-                            const newDb = {};
-                            tempTabs.forEach(key => { newDb[key] = window.db[key]; });
-                            window.db = newDb;
-                            window.renderTabs();
-                            window.saveToStorage();
-                        }
-                        tabDragSrcIndex = null;
-                    });
-                    btn.addEventListener('dragend', () => {
-                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('drag-over'));
-                    });
-                }
-
                 btn.onclick = function() {
                     window.currentTab = tabName;
                     window.renderTabs();
                     window.renderCards();
-                    if (window.innerWidth <= 768) {
-                        window.toggleSidebar();
-                    }
+                    // 點選分類後自動收摺選單
+                    window.closeSidebarOnMobile();
                 };
                 container.appendChild(btn);
             });
@@ -491,30 +437,6 @@
             window.db[window.currentTab].forEach((item, index) => {
                 const card = document.createElement('div');
                 card.className = 'video-card';
-                
-                if (window.isAdminMode) {
-                    card.draggable = true;
-                    card.classList.add('draggable');
-                    card.innerHTML = `<div class="drag-badge">☰ 拖曳</div>`;
-                    
-                    card.addEventListener('dragstart', (e) => dragSrcIndex = index);
-                    card.addEventListener('dragover', (e) => e.preventDefault());
-                    card.addEventListener('dragenter', () => card.classList.add('drag-over'));
-                    card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
-                    card.addEventListener('drop', (e) => {
-                        e.stopPropagation();
-                        if (dragSrcIndex !== null && dragSrcIndex !== index) {
-                            const list = window.db[window.currentTab];
-                            const targetItem = list.splice(dragSrcIndex, 1)[0];
-                            list.splice(index, 0, targetItem);
-                            window.saveToStorage();
-                        }
-                        dragSrcIndex = null;
-                    });
-                    card.addEventListener('dragend', () => {
-                        document.querySelectorAll('.video-card').forEach(c => c.classList.remove('drag-over'));
-                    });
-                }
 
                 const thumbLink = document.createElement('a');
                 thumbLink.className = 'thumb-link';
@@ -528,12 +450,7 @@
                 img.src = getYoutubeThumb(item.url);
                 img.loading = 'lazy';
                 
-                const overlay = document.createElement('div');
-                overlay.className = 'play-overlay';
-                overlay.innerHTML = `<div class="play-icon">▶</div>`;
-                
                 thumbWrapper.appendChild(img);
-                thumbWrapper.appendChild(overlay);
                 thumbLink.appendChild(thumbWrapper);
                 card.appendChild(thumbLink);
 
@@ -544,15 +461,12 @@
                 title.innerText = item.title || '未命名影片';
                 info.appendChild(title);
 
-                const actions = document.createElement('div');
-                actions.className = 'card-actions';
-
                 if (window.isAdminMode) {
+                    const actions = document.createElement('div');
+                    actions.className = 'card-actions';
                     const delBtn = document.createElement('button');
                     delBtn.className = 'btn btn-danger';
-                    delBtn.style.padding = '0 10px';
                     delBtn.style.height = '30px';
-                    delBtn.style.fontSize = '12px';
                     delBtn.innerText = '刪除';
                     delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); window.deleteVideo(index); };
                     actions.appendChild(delBtn);
@@ -567,9 +481,7 @@
         window.addTab = function() {
             const input = document.getElementById('newTabName');
             const name = input ? input.value.trim() : '';
-            if (!name) return alert('請填寫分頁名稱');
-            if (window.db[name]) return alert('此名稱已存在');
-            
+            if (!name || window.db[name]) return alert('名稱不正確或已存在');
             window.db[name] = [];
             window.currentTab = name;
             input.value = '';
@@ -580,7 +492,7 @@
 
         window.removeCurrentTab = function() {
             if (!window.currentTab) return;
-            if (confirm(`確定要永久刪除「${window.currentTab}」分頁嗎？`)) {
+            if (confirm(`確定要永久刪除「${window.currentTab}」嗎？`)) {
                 delete window.db[window.currentTab];
                 const remaining = Object.keys(window.db || {});
                 window.currentTab = remaining.length > 0 ? remaining[0] : "";
@@ -592,18 +504,14 @@
 
         window.importVideos = function() {
             const textarea = document.getElementById('rawInput');
-            if (!textarea) return;
-            const content = textarea.value.trim();
-            if (!content) return alert('內容不能為空');
-
-            const lines = content.split('\n');
+            if (!textarea || !textarea.value.trim()) return alert('內容不能為空');
+            const lines = textarea.value.split('\n');
             let count = 0;
             let activeImportTab = window.currentTab;
 
             lines.forEach(line => {
                 line = line.trim();
                 if (!line) return;
-
                 if (line.startsWith('[') && line.endsWith(']')) {
                     const targetTabName = line.substring(1, line.length - 1).trim();
                     if (targetTabName) {
@@ -613,22 +521,12 @@
                     }
                     return;
                 }
-
-                if (!activeImportTab) {
-                    activeImportTab = "未分類影片";
-                    if (!window.db[activeImportTab]) window.db[activeImportTab] = [];
-                    window.currentTab = activeImportTab;
-                }
-
-                const lastSpaceIndex = line.lastIndexOf(' ');
-                const lastTabIndex = line.lastIndexOf('\t');
-                const splitIndex = Math.max(lastSpaceIndex, lastTabIndex);
-
+                const splitIndex = line.lastIndexOf(' ');
                 if (splitIndex !== -1) {
                     const title = line.substring(0, splitIndex).trim();
                     const url = line.substring(splitIndex + 1).trim();
-
                     if (url.startsWith('http') && title) {
+                        if (!window.db[activeImportTab]) window.db[activeImportTab] = [];
                         window.db[activeImportTab].push({ title, url });
                         count++;
                     }
@@ -640,14 +538,12 @@
                 window.renderCards();
                 window.saveToStorage();
                 textarea.value = '';
-                alert(`成功智能解析並匯入 ${count} 部影片！`);
-            } else {
-                alert('格式無法辨識！');
+                alert(`成功導入 ${count} 部影片！`);
             }
         }
 
         window.flipOrder = function() {
-            if (!window.currentTab || !window.db[window.currentTab] || window.db[window.currentTab].length <= 1) return;
+            if (!window.currentTab || !window.db[window.currentTab].length) return;
             window.db[window.currentTab].reverse();
             window.renderCards();
             window.saveToStorage();
@@ -661,8 +557,6 @@
                 document.getElementById('adminLoginBtn').innerText = "🔒 鎖定";
                 window.renderTabs(); 
                 window.renderCards();
-            } else if (password !== null) {
-                alert("密碼不正確！");
             }
         }
 
