@@ -3,11 +3,11 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-    // 1. 呢度已經完美幫你對接好你新開嘅 Realtime Database 網址
+    // 1. Firebase 設定
     const firebaseConfig = {
         apiKey: "AIzaSyBl7yqNoQQBZOt2v6aN_wre1if7cXGFOns",
         authDomain: "fir-836a9.firebaseapp.com",
-        databaseURL: "https://fir-836a9-default-rtdb.firebaseio.com/", // 👈 呢度同你個資料庫連線
+        databaseURL: "https://fir-836a9-default-rtdb.firebaseio.com/",
         projectId: "fir-836a9",
         storageBucket: "fir-836a9.firebasestorage.app",
         messagingSenderId: "229605718156",
@@ -17,9 +17,9 @@
     // 初始化 Firebase
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
-    const dbRef = ref(database, 'video_data'); // 喺資料庫建立一個叫 video_data 的節點
+    const dbRef = ref(database, 'video_data');
 
-    // 你原本寫死嘅預備數據（當資料庫全空時才會寫入）
+    // 預設數據
     const defaultData = {
         "TankShow": [
             { title: "TankShow 10 360", url: "https://youtu.be/A5ruMMW0_vY" },
@@ -30,7 +30,7 @@
         ]
     };
 
-    // 全域變數
+    // 全域變數初始化
     window.db = {}; 
     window.currentTab = "";
     window.isAdminMode = false;
@@ -38,46 +38,56 @@
 
     // 2. 監聽 Firebase 資料庫狀態
     onValue(dbRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            window.db = data;
-        } else {
-            // 如果資料庫係空的（第一次開），初始化寫入預設數據
-            window.db = defaultData;
-            saveToStorage();
+        try {
+            const data = snapshot.val();
+            if (data && Object.keys(data).length > 0) {
+                window.db = data;
+            } else {
+                // 如果雲端係空的，寫入預設數據
+                window.db = defaultData;
+                window.saveToStorage();
+            }
+            
+            // 自動鎖定當前 Tab 位置
+            const tabs = Object.keys(window.db);
+            if (!window.currentTab || !window.db[window.currentTab]) {
+                window.currentTab = tabs.length > 0 ? tabs[0] : "";
+            }
+            
+            // 確保資料載入完成才執行渲染
+            window.renderTabs();
+            window.renderTable();
+        } catch (error) {
+            console.error("讀取 Firebase 資料時出錯: ", error);
         }
-        
-        // 自動鎖定當前 Tab 位置
-        const tabs = Object.keys(window.db);
-        if (!window.currentTab || !window.db[window.currentTab]) {
-            window.currentTab = tabs.length > 0 ? tabs[0] : "";
-        }
-        
-        renderTabs();
-        renderTable();
+    }, (error) => {
+        console.error("Firebase 連線失敗，請檢查 Rules 權限設定：", error);
     });
 
-    // 3. 儲存邏輯：直接推送到 Firebase 雲端
+    // 3. 儲存邏輯
     window.saveToStorage = function() {
         set(dbRef, window.db)
             .then(() => console.log("Firebase 同步成功！"))
             .catch((error) => console.error("同步失敗：", error));
     }
 
-    // --- 以下為 UI 渲染與操作邏輯 ---
+    // --- UI 渲染與操作邏輯 ---
 
     window.renderTabs = function() {
         const container = document.getElementById('tabsContainer');
         if (!container) return;
         container.innerHTML = '';
+        
+        if (!window.db) return;
+        
         Object.keys(window.db).forEach(tabName => {
             const btn = document.createElement('button');
             btn.className = `tab-btn ${tabName === window.currentTab ? 'active' : ''}`;
             btn.innerText = tabName;
             btn.onclick = function() {
                 window.currentTab = tabName;
-                renderTabs();
-                renderTable();
+                window.renderTabs();
+                window.renderTable();
             };
             container.appendChild(btn);
         });
@@ -88,7 +98,7 @@
         if (!tbody) return;
         tbody.innerHTML = '';
 
-        if (!window.currentTab || !window.db[window.currentTab] || window.db[window.currentTab].length === 0) {
+        if (!window.db || !window.currentTab || !window.db[window.currentTab] || window.db[window.currentTab].length === 0) {
             tbody.innerHTML = `<tr><td colspan="${window.isAdminMode ? 3 : 2}" style="text-align:center; color:#999;">此分頁暫無影片</td></tr>`;
             return;
         }
@@ -111,11 +121,11 @@
             
             const tdTitle = document.createElement('td');
             const handle = window.isAdminMode ? `<span class="drag-handle">☰</span>` : '';
-            tdTitle.innerHTML = `${handle}<strong>${item.title}</strong>`;
+            tdTitle.innerHTML = `${handle}<strong>${item.title || '無標題'}</strong>`;
             tr.appendChild(tdTitle);
 
             const tdView = document.createElement('td');
-            tdView.innerHTML = `<a class="btn-view" href="${item.url}" target="_blank">▶ 開啟影片</a>`;
+            tdView.innerHTML = `<a class="btn-view" href="${item.url || '#'}" target="_blank">▶ 開啟影片</a>`;
             tr.appendChild(tdView);
 
             const tdCtrl = document.createElement('td');
@@ -146,7 +156,7 @@
             const movedItem = targetArray.splice(dragSrcIndex, 1)[0];
             targetArray.splice(targetIndex, 0, movedItem);
             
-            saveToStorage();
+            window.saveToStorage();
         }
         dragSrcIndex = null;
     }
@@ -154,7 +164,7 @@
     window.flipOrder = function() {
         if (!window.currentTab || !window.db[window.currentTab] || window.db[window.currentTab].length <= 1) return;
         window.db[window.currentTab].reverse();
-        saveToStorage();
+        window.saveToStorage();
         alert(`已成功翻轉「${window.currentTab}」內所有影片的排列順序！`);
     }
 
@@ -163,9 +173,10 @@
         const password = prompt("請輸入管理員密碼：");
         if (password === "3005") {
             window.isAdminMode = true;
-            document.getElementById('adminArea').classList.remove('hidden');
+            const adminArea = document.getElementById('adminArea');
+            if (adminArea) adminArea.classList.remove('hidden');
             document.querySelectorAll('.admin-ctrl').forEach(el => el.classList.remove('hidden'));
-            renderTable();
+            window.renderTable();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (password !== null) {
             alert("密碼錯誤！");
@@ -174,19 +185,22 @@
 
     window.lockAdmin = function() {
         window.isAdminMode = false;
-        document.getElementById('adminArea').classList.add('hidden');
+        const adminArea = document.getElementById('adminArea');
+        if (adminArea) adminArea.classList.add('hidden');
         document.querySelectorAll('.admin-ctrl').forEach(el => el.classList.add('hidden'));
-        renderTable();
+        window.renderTable();
     }
 
     window.addTab = function() {
-        const name = document.getElementById('newTabName').value.trim();
+        const nameInput = document.getElementById('newTabName');
+        if (!nameInput) return;
+        const name = nameInput.value.trim();
         if (!name) return alert('請輸入分頁名稱！');
         if (window.db[name]) return alert('此分頁名稱已存在！');
         window.db[name] = [];
         window.currentTab = name;
-        document.getElementById('newTabName').value = '';
-        saveToStorage();
+        nameInput.value = '';
+        window.saveToStorage();
     }
 
     window.removeCurrentTab = function() {
@@ -195,13 +209,15 @@
             delete window.db[window.currentTab];
             const remainingTabs = Object.keys(window.db);
             window.currentTab = remainingTabs.length > 0 ? remainingTabs[0] : "";
-            saveToStorage();
+            window.saveToStorage();
         }
     }
 
     window.importVideos = function() {
         if (!window.currentTab) return alert('請先選擇或創建一個分頁！');
-        const input = document.getElementById('rawInput').value.trim();
+        const inputEl = document.getElementById('rawInput');
+        if (!inputEl) return;
+        const input = inputEl.value.trim();
         if (!input) return alert('請先貼上影片資料！');
 
         const lines = input.split('\n');
@@ -220,18 +236,21 @@
         });
 
         if (count > 0) {
-            saveToStorage();
-            document.getElementById('rawInput').value = '';
+            window.saveToStorage();
+            inputEl.value = '';
             alert(`成功追加了 ${count} 條影片！`);
         } else {
             alert('未能解析資料，請檢查格式。');
         }
     }
 
+    // 👈 呢度修正咗原本會搞到白畫面的 bug
     window.deleteVideo = function(index) {
-        if (confirm(`確定要刪除影片「${window.db[window.currentTab][index].title}」嗎？`)) {
+        if (!window.db || !window.db[window.currentTab] || !window.db[window.currentTab][index]) return;
+        const videoTitle = window.db[window.currentTab][index].title || "未命名影片";
+        if (confirm(`確定要刪除影片「${videoTitle}」嗎？`)) {
             window.db[window.currentTab].splice(index, 1);
-            saveToStorage();
+            window.saveToStorage();
         }
     }
 </script>
