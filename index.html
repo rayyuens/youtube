@@ -78,7 +78,8 @@
         .video-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
         
         /* YouTube 封面預覽圖 */
-        .thumb-wrapper { width: 100%; aspect-ratio: 16 / 9; background: #e2e8f0; position: relative; overflow: hidden; }
+        .thumb-link { display: block; width: 100%; aspect-ratio: 16 / 9; text-decoration: none; position: relative; overflow: hidden; }
+        .thumb-wrapper { width: 100%; height: 100%; background: #e2e8f0; position: relative; }
         .thumb-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
         .video-card:hover .thumb-img { transform: scale(1.05); }
         
@@ -294,7 +295,7 @@
             });
         }
 
-        // 【新增核心邏輯】移動分頁權限順序
+        // 移動分頁權限順序
         function moveTabOrder(currentIndex, direction) {
             const tabs = Object.keys(window.db || {});
             const targetIndex = currentIndex + direction;
@@ -358,6 +359,12 @@
                     });
                 }
 
+                // 將封面圖同播放圖示包裝入 <a> 標籤，點擊直接導向 YouTube
+                const thumbLink = document.createElement('a');
+                thumbLink.className = 'thumb-link';
+                thumbLink.href = item.url || '#';
+                thumbLink.target = '_blank';
+
                 const thumbWrapper = document.createElement('div');
                 thumbWrapper.className = 'thumb-wrapper';
                 const img = document.createElement('img');
@@ -371,7 +378,8 @@
                 
                 thumbWrapper.appendChild(img);
                 thumbWrapper.appendChild(overlay);
-                card.appendChild(thumbWrapper);
+                thumbLink.appendChild(thumbWrapper);
+                card.appendChild(thumbLink);
 
                 const info = document.createElement('div');
                 info.className = 'video-info';
@@ -395,7 +403,7 @@
                     delBtn.style.padding = '6px 12px';
                     delBtn.style.fontSize = '12px';
                     delBtn.innerText = '刪除';
-                    delBtn.onclick = (e) => { e.preventDefault(); window.deleteVideo(index); };
+                    delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); window.deleteVideo(index); };
                     actions.appendChild(delBtn);
                 }
 
