@@ -1,5 +1,71 @@
-<script>
-        // 1. Firebase 設定
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>影片管理系統</title>
+    
+    <!-- 1. 必須引入這兩個 Firebase 基礎庫，否則會報 firebase is not defined 錯誤 -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f5f5f5; color: #333; }
+        .hidden { display: none !important; }
+        #tabsContainer { margin-bottom: 15px; }
+        .tab-btn { padding: 10px 20px; margin-right: 5px; cursor: pointer; border: 1px solid #ccc; background: #fff; }
+        .tab-btn.active { background: #007bff; color: #fff; border-color: #007bff; }
+        table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #f0f0f0; }
+        .btn-view { color: #007bff; text-decoration: none; font-weight: bold; }
+        .btn-danger { background: #dc3545; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+        #adminArea { background: #e9ecef; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        .drag-handle { cursor: move; margin-right: 10px; color: #999; }
+        tr.drag-over { border-top: 2px solid #007bff; }
+    </style>
+</head>
+<body>
+
+    <!-- 管理員控制區（預設隱藏） -->
+    <div id="adminArea" class="hidden">
+        <h3>管理員後台</h3>
+        <button onclick="lockAdmin()">登出管理員</button>
+        <button onclick="flipOrder()">反轉影片順序</button>
+        <button onclick="removeCurrentTab()">刪除當前分頁</button>
+        <br><br>
+        <input type="text" id="newTabName" placeholder="新分頁名稱">
+        <button onclick="addTab()">新增分頁</button>
+        <br><br>
+        <textarea id="rawInput" rows="4" cols="50" placeholder="貼上影片資料 (格式: 標題 網址)"></textarea>
+        <br>
+        <button onclick="importVideos()">匯入影片</button>
+    </div>
+
+    <!-- 登入按鈕 -->
+    <div style="text-align: right; margin-bottom: 10px;">
+        <button onclick="checkPassword()">管理員登入</button>
+    </div>
+
+    <!-- 分頁按鈕容器 -->
+    <div id="tabsContainer">載入中...</div>
+
+    <!-- 影片表格 -->
+    <table>
+        <thead>
+            <tr>
+                <th>影片標題</th>
+                <th>操作</th>
+                <th class="admin-ctrl hidden">管理</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <tr><td colspan="2" style="text-align:center;">正在連線到 Firebase...</td></tr>
+        </tbody>
+    </table>
+
+    <script>
+        // 2. Firebase 初始化設定
         const firebaseConfig = {
             apiKey: "AIzaSyBl7yqNoQQBZOt2v6aN_wre1if7cXGFOns",
             authDomain: "fir-836a9.firebaseapp.com",
@@ -10,10 +76,10 @@
             appId: "1:229605718156:web:533d91c7a0907212a7a3a9"
         };
 
-        // 修正後的 UMD 穩定初始化連線
+        // 確保剛才引入的全域對象存在，進行安全對接
         const app = firebase.initializeApp(firebaseConfig);
-        const database = firebase.database(); // 👈 修正為正確的傳統實體獲取方式
-        const dbRef = database.ref('video_data'); // 👈 修正連線路徑函式
+        const database = firebase.database(); 
+        const dbRef = database.ref('video_data');
 
         // 預設數據
         const defaultData = {
@@ -32,8 +98,8 @@
         window.isAdminMode = false;
         let dragSrcIndex = null;
 
-        // 2. 監聽 Firebase 資料庫狀態
-        dbRef.on('value', (snapshot) => { // 👈 換成相容性最強的經典監聽語法
+        // 3. 監聽 Firebase 資料庫狀態
+        dbRef.on('value', (snapshot) => {
             try {
                 const data = snapshot.val();
                 if (data && Object.keys(data).length > 0) {
@@ -54,11 +120,11 @@
                 console.error("讀取 Firebase 資料時出錯: ", error);
             }
         }, (error) => {
-            console.error("Firebase 連線失敗，請檢查 Rules 權限設定：", error);
-            alert("Firebase 連線失敗！請檢查資料庫的 Rules 是否已開啟公開讀寫（.read: true）。");
+            console.error("Firebase 連線失敗：", error);
+            alert("Firebase 連線失敗！請檢查你資料庫的 Rules 是否已設定為公開（.read: true）。");
         });
 
-        // 3. 儲存邏輯
+        // 4. 儲存邏輯
         window.saveToStorage = function() {
             dbRef.set(window.db)
                 .then(() => console.log("Firebase 同步成功！"))
@@ -118,7 +184,7 @@
                 tr.appendChild(tdTitle);
 
                 const tdView = document.createElement('td');
-                tdView.innerHTML = `<a class="btn-view" href="${item.url || '#'}" target="_blank">▶ 開啟影片</a>`;
+                tdView.innerHTML = `<a class="btn-view" href="${item.url || '#'}" target="_blank">▶ 開享影片</a>`;
                 tr.appendChild(tdView);
 
                 const tdCtrl = document.createElement('td');
@@ -245,3 +311,5 @@
             }
         }
     </script>
+</body>
+</html>
