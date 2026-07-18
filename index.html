@@ -14,6 +14,7 @@
             --primary: #4f46e5;
             --primary-hover: #4338ca;
             --bg: #f8fafc;
+            --sidebar-bg: #ffffff;
             --card-bg: #ffffff;
             --text-main: #0f172a;
             --text-muted: #64748b;
@@ -23,18 +24,99 @@
             --radius: 12px;
             --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+            --sidebar-width: 260px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
         
-        body { background-color: var(--bg); color: var(--text-main); padding: 24px; min-height: 100vh; }
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; display: flex; overflow-x: hidden; }
         
-        .container { max-width: 1200px; margin: 0 auto; }
-
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
-        header h1 { font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
-
         .hidden { display: none !important; }
+
+        /* 左側邊欄佈局 */
+        aside {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 50;
+        }
+        
+        /* 當側邊欄被收摺時 */
+        aside.folded {
+            width: 0;
+            overflow: hidden;
+            border-right-color: transparent;
+        }
+
+        .sidebar-header {
+            padding: 24px 16px 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .sidebar-header h2 { font-size: 18px; font-weight: 700; color: var(--text-main); }
+
+        /* 分頁直排容器 */
+        #tabsContainer {
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        
+        /* 直排分頁按鈕 */
+        .tab-btn {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+            display: block;
+        }
+        .tab-btn:hover { color: var(--text-main); background: #f1f5f9; }
+        .tab-btn.active { background: #eef2ff; color: var(--primary); border-left: 4px solid var(--primary); border-radius: 4px var(--radius) var(--radius) 4px; }
+        
+        /* 管理員模式下的拖曳直排樣式 */
+        .tab-btn.draggable { cursor: grab; }
+        .tab-btn.draggable:active { cursor: grabbing; }
+        .tab-btn.drag-over { border: 2px dashed var(--primary); background: #f5f3ff; }
+
+        /* 右側主內容區 */
+        main {
+            flex-grow: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+        }
+        header h1 { font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; margin-right: auto; }
 
         /* 按鈕設計 */
         .btn { padding: 8px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
@@ -43,6 +125,7 @@
         .btn-primary:hover { background: var(--primary-hover); }
         .btn-danger { background: #fee2e2; color: var(--danger); border: none; }
         .btn-danger:hover { background: #fca5a5; color: var(--danger-hover); }
+        .btn-toggle { padding: 8px 12px; background: var(--card-bg); font-size: 16px; }
 
         /* 管理員後台面板 */
         #adminArea { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(8px); border: 1px solid var(--border); padding: 24px; border-radius: var(--radius); margin-bottom: 32px; box-shadow: var(--shadow-lg); }
@@ -52,34 +135,17 @@
         input[type="text"], textarea { width: 100%; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card-bg); font-size: 14px; outline: none; transition: border 0.2s; }
         input[type="text"]:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
 
-        /* 分頁群組導覽欄 */
-        #tabsContainer { display: flex; gap: 12px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 12px; border-bottom: 1px solid var(--border); align-items: center; }
-        #tabsContainer::-webkit-scrollbar { height: 4px; }
-        #tabsContainer::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-        
-        /* 分頁按鈕樣式 */
-        .tab-btn { padding: 8px 18px; border-radius: 20px; border: none; background: #edf2f7; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; font-size: 14px; border: 1px solid transparent; }
-        .tab-btn:hover { color: var(--text-main); background: #e2e8f0; }
-        .tab-btn.active { background: var(--primary); color: white; }
-        
-        /* 管理員模式下的拖曳分頁樣式 */
-        .tab-btn.draggable { cursor: grab; position: relative; }
-        .tab-btn.draggable:active { cursor: grabbing; }
-        .tab-btn.drag-over { border: 1px dashed var(--primary); transform: scale(0.95); opacity: 0.7; }
-
         /* 影片卡片網格 */
         .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
         
         .video-card { background: var(--card-bg); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; display: flex; flex-direction: column; }
         .video-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
         
-        /* YouTube 封面預覽圖 */
         .thumb-link { display: block; width: 100%; aspect-ratio: 16 / 9; text-decoration: none; position: relative; overflow: hidden; }
         .thumb-wrapper { width: 100%; height: 100%; background: #e2e8f0; position: relative; }
         .thumb-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
         .video-card:hover .thumb-img { transform: scale(1.05); }
         
-        /* 播放按鈕覆蓋效果 */
         .play-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
         .video-card:hover .play-overlay { opacity: 1; }
         .play-icon { width: 48px; height: 48px; background: rgba(255,255,255,0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); color: var(--primary); font-size: 18px; }
@@ -89,27 +155,39 @@
         
         .card-actions { display: flex; justify-content: flex-end; align-items: center; margin-top: auto; }
 
-        /* 拖拽影片排序狀態 */
         .video-card.draggable { cursor: grab; }
         .video-card.draggable:active { cursor: grabbing; }
         .video-card.drag-over { border: 2px dashed var(--primary); transform: scale(0.98); }
         .drag-badge { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; z-index: 10; display: flex; align-items: center; gap: 4px; backdrop-filter: blur(4px); pointer-events: none; }
 
-        /* 狀態文字提示 */
         .status-msg { text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 15px; grid-column: 1 / -1; }
 
-        @media (max-width: 640px) {
-            body { padding: 16px; }
-            header h1 { font-size: 20px; }
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            aside { width: 100%; border-right: none; border-bottom: 1px solid var(--border); height: auto; max-height: 300px; }
+            aside.folded { height: 0; max-height: 0; }
             .video-grid { grid-template-columns: 1fr; gap: 16px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <!-- 左側邊欄（分頁群組行） -->
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <h2>📁 影片分頁群組</h2>
+            <button onclick="toggleSidebar()" class="btn btn-toggle" title="收摺側邊欄">◀</button>
+        </div>
+        <div id="tabsContainer">
+            <div style="color: var(--text-muted); font-size:13px; padding: 0 8px;">正在建立安全連線...</div>
+        </div>
+    </aside>
+
+    <!-- 右側主內容區 -->
+    <main>
         <header>
-            <h1>精選影片庫</h1>
+            <button id="toggleExpandBtn" onclick="toggleSidebar()" class="btn btn-toggle hidden" title="展開側邊欄" style="margin-right: 8px;">▶ 顯示選單</button>
+            <h1 id="mainTitle">精選影片庫</h1>
             <div>
                 <button id="adminLoginBtn" onclick="checkPassword()" class="btn">🔑 管理員登入</button>
             </div>
@@ -135,16 +213,11 @@
             <button onclick="importVideos()" class="btn btn-primary" style="width: 100%; justify-content: center;">⚡ 智能解析並匯入影片</button>
         </div>
 
-        <!-- 分頁導覽欄 -->
-        <div id="tabsContainer">
-            <div style="color: var(--text-muted); font-size:14px;">正在建立安全連線...</div>
-        </div>
-
         <!-- 影片卡片容器 -->
         <div class="video-grid" id="videoWrapper">
             <div class="status-msg">正在同步 Firebase 資料庫...</div>
         </div>
-    </div>
+    </main>
 
     <script>
         // Firebase 設定
@@ -178,6 +251,19 @@
         window.isAdminMode = false;
         let dragSrcIndex = null;
         let tabDragSrcIndex = null;
+
+        // 收摺側邊欄功能
+        window.toggleSidebar = function() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleExpandBtn = document.getElementById('toggleExpandBtn');
+            if (sidebar.classList.contains('folded')) {
+                sidebar.classList.remove('folded');
+                toggleExpandBtn.classList.add('hidden');
+            } else {
+                sidebar.classList.add('folded');
+                toggleExpandBtn.classList.remove('hidden');
+            }
+        }
 
         function getYoutubeThumb(url) {
             if (!url) return 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&q=80';
@@ -221,7 +307,7 @@
                 .catch((err) => console.error("同步失敗", err));
         }
 
-        // 渲染分頁標籤（支援拖曳排序與雙擊修改名稱）
+        // 渲染側邊直排分頁（完美保留拖曳排序、雙擊修改功能）
         window.renderTabs = function() {
             const container = document.getElementById('tabsContainer');
             if (!container) return;
@@ -229,19 +315,25 @@
             
             const tabs = Object.keys(window.db || {});
             if(tabs.length === 0) {
-                container.innerHTML = '<div style="color:var(--text-muted); font-size:14px; padding:10px 0;">💡 目前沒有分頁，請使用下方批量匯入或建立新分頁</div>';
+                container.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px 8px;">💡 沒有分頁，請在右方智能解析建立。</div>';
                 return;
+            }
+
+            // 更新網頁頂部的主標題提示當前分頁
+            const mainTitle = document.getElementById('mainTitle');
+            if(mainTitle && window.currentTab) {
+                mainTitle.innerText = `精選影片庫 ➔ ${window.currentTab}`;
             }
 
             tabs.forEach((tabName, index) => {
                 const btn = document.createElement('button');
                 btn.className = `tab-btn ${tabName === window.currentTab ? 'active' : ''}`;
-                btn.innerText = tabName;
+                btn.innerText = `📁 ${tabName}`;
                 
                 if (window.isAdminMode) {
                     btn.draggable = true;
                     btn.classList.add('draggable');
-                    btn.title = "🤝 按住拖曳排序 / 🖱️ 連點兩下修改名稱";
+                    btn.title = "🤝 按住上下拖曳排序 / 🖱️ 連點兩下修改名稱";
                     
                     // 雙擊修改分頁名稱
                     btn.ondblclick = function(e) {
@@ -254,7 +346,6 @@
                                 return;
                             }
                             
-                            // 保持順序更換鍵值
                             const newDb = {};
                             Object.keys(window.db).forEach(key => {
                                 if (key === tabName) {
@@ -273,7 +364,7 @@
                         }
                     };
 
-                    // 分頁拖曳事件
+                    // 分頁拖曳事件（直向排序）
                     btn.addEventListener('dragstart', (e) => {
                         tabDragSrcIndex = index;
                     });
@@ -301,7 +392,6 @@
                     btn.addEventListener('dragend', () => {
                         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('drag-over'));
                     });
-
                 }
 
                 btn.onclick = function() {
@@ -319,7 +409,7 @@
             wrapper.innerHTML = '';
 
             if (!window.db || !window.currentTab || !window.db[window.currentTab] || window.db[window.currentTab].length === 0) {
-                wrapper.innerHTML = `<div class="status-msg">📭 此分頁目前空空如也，請在下方貼上網址匯入影片！</div>`;
+                wrapper.innerHTML = `<div class="status-msg">📭 此分頁目前空空如也，請在管理員控制台貼上網址匯入影片！</div>`;
                 return;
             }
 
@@ -351,7 +441,6 @@
                     });
                 }
 
-                // 點擊縮圖即可另開新視窗觀看
                 const thumbLink = document.createElement('a');
                 thumbLink.className = 'thumb-link';
                 thumbLink.href = item.url || '#';
@@ -383,7 +472,6 @@
                 const actions = document.createElement('div');
                 actions.className = 'card-actions';
 
-                // 管理員模式擺放「刪除」按鈕
                 if (window.isAdminMode) {
                     const delBtn = document.createElement('button');
                     delBtn.className = 'btn btn-danger';
@@ -428,7 +516,6 @@
             }
         }
 
-        // 超級智能解析：支援一邊新增分頁一邊匯入影片
         window.importVideos = function() {
             const textarea = document.getElementById('rawInput');
             if (!textarea) return;
@@ -437,33 +524,30 @@
 
             const lines = content.split('\n');
             let count = 0;
-            let activeImportTab = window.currentTab; // 預設使用當前選取的分頁
+            let activeImportTab = window.currentTab;
 
             lines.forEach(line => {
                 line = line.trim();
                 if (!line) return;
 
-                // 檢查是否為自訂群組定義行，如 [多倫多景點] 或 [Toronto]
                 if (line.startsWith('[') && line.endsWith(']')) {
                     const targetTabName = line.substring(1, line.length - 1).trim();
                     if (targetTabName) {
                         if (!window.db[targetTabName]) {
-                            window.db[targetTabName] = []; // 如果群組不存在就自動創建
+                            window.db[targetTabName] = [];
                         }
-                        activeImportTab = targetTabName; // 將接下來的影片歸入此群組
+                        activeImportTab = targetTabName;
                         if (!window.currentTab) window.currentTab = targetTabName; 
                     }
-                    return; // 跳過本行處理下一行
+                    return;
                 }
 
-                // 如果還沒有任何分頁群組，預設臨時建一個
                 if (!activeImportTab) {
                     activeImportTab = "未分類影片";
                     if (!window.db[activeImportTab]) window.db[activeImportTab] = [];
                     window.currentTab = activeImportTab;
                 }
 
-                // 尋找最後一個空格切分標題和網址
                 const lastSpaceIndex = line.lastIndexOf(' ');
                 const lastTabIndex = line.lastIndexOf('\t');
                 const splitIndex = Math.max(lastSpaceIndex, lastTabIndex);
