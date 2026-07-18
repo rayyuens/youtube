@@ -3,69 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>影片管理系統</title>
+    <title>精選影片庫</title>
     
-    <!-- 1. 必須引入這兩個 Firebase 基礎庫，否則會報 firebase is not defined 錯誤 -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f5f5f5; color: #333; }
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        
+        body { background-color: var(--bg); color: var(--text-main); padding: 24px; min-height: 100vh; }
+        
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+        header h1 { font-size: 24px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+
         .hidden { display: none !important; }
-        #tabsContainer { margin-bottom: 15px; }
-        .tab-btn { padding: 10px 20px; margin-right: 5px; cursor: pointer; border: 1px solid #ccc; background: #fff; }
-        .tab-btn.active { background: #007bff; color: #fff; border-color: #007bff; }
-        table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background: #f0f0f0; }
-        .btn-view { color: #007bff; text-decoration: none; font-weight: bold; }
-        .btn-danger { background: #dc3545; color: white; border: none; padding: 5px 10px; cursor: pointer; }
-        #adminArea { background: #e9ecef; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
-        .drag-handle { cursor: move; margin-right: 10px; color: #999; }
-        tr.drag-over { border-top: 2px solid #007bff; }
+
+        /* 按鈕設計 */
+        .btn { padding: 8px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+        .btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .btn-primary { background: var(--primary); color: white; border: none; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-danger { background: #fee2e2; color: var(--danger); border: none; }
+        .btn-danger:hover { background: #fca5a5; color: var(--danger-hover); }
+
+        /* 管理員後台面板 */
+        #adminArea { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(8px); border: 1px solid var(--border); padding: 24px; border-radius: var(--radius); margin-bottom: 32px; box-shadow: var(--shadow-lg); }
+        #adminArea h3 { margin-bottom: 16px; font-size: 18px; }
+        .admin-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+        .admin-input-group { display: flex; gap: 10px; margin-bottom: 16px; }
+        input[type="text"], textarea { width: 100%; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card-bg); font-size: 14px; outline: none; transition: border 0.2s; }
+        input[type="text"]:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+
+        /* 分頁標籤樣式 */
+        #tabsContainer { display: flex; gap: 8px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+        #tabsContainer::-webkit-scrollbar { height: 4px; }
+        #tabsContainer::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        .tab-btn { padding: 10px 20px; border-radius: 20px; border: 1px solid transparent; background: transparent; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; font-size: 15px; }
+        .tab-btn:hover { color: var(--text-main); background: #edf2f7; }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25); }
+
+        /* 影片卡片網格 */
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+        
+        .video-card { background: var(--card-bg); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; display: flex; flex-direction: column; }
+        .video-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+        
+        /* YouTube 封面預覽圖 */
+        .thumb-wrapper { width: 100%; aspect-ratio: 16 / 9; background: #e2e8f0; position: relative; overflow: hidden; }
+        .thumb-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+        .video-card:hover .thumb-img { transform: scale(1.05); }
+        
+        /* 播放按鈕覆蓋效果 */
+        .play-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+        .video-card:hover .play-overlay { opacity: 1; }
+        .play-icon { width: 48px; height: 48px; background: rgba(255,255,255,0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); color: var(--primary); font-size: 18px; }
+
+        .video-info { padding: 16px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between; gap: 12px; }
+        .video-title { font-size: 15px; font-weight: 600; color: var(--text-main); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 42px; }
+        
+        .card-actions { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
+        .btn-play-link { text-decoration: none; color: var(--primary); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
+        .btn-play-link:hover { color: var(--primary-hover); }
+
+        /* 拖拽排序狀態 */
+        .video-card.draggable { cursor: grab; }
+        .video-card.draggable:active { cursor: grabbing; }
+        .video-card.drag-over { border: 2px dashed var(--primary); transform: scale(0.98); }
+        .drag-badge { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; z-index: 10; display: flex; align-items: center; gap: 4px; backdrop-filter: blur(4px); pointer-events: none; }
+
+        /* 狀態文字提示 */
+        .status-msg { text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 15px; grid-column: 1 / -1; }
+
+        @media (max-width: 640px) {
+            body { padding: 16px; }
+            header h1 { font-size: 20px; }
+            .video-grid { grid-template-columns: 1fr; gap: 16px; }
+        }
     </style>
 </head>
 <body>
 
-    <!-- 管理員控制區（預設隱藏） -->
-    <div id="adminArea" class="hidden">
-        <h3>管理員後台</h3>
-        <button onclick="lockAdmin()">登出管理員</button>
-        <button onclick="flipOrder()">反轉影片順序</button>
-        <button onclick="removeCurrentTab()">刪除當前分頁</button>
-        <br><br>
-        <input type="text" id="newTabName" placeholder="新分頁名稱">
-        <button onclick="addTab()">新增分頁</button>
-        <br><br>
-        <textarea id="rawInput" rows="4" cols="50" placeholder="貼上影片資料 (格式: 標題 網址)"></textarea>
-        <br>
-        <button onclick="importVideos()">匯入影片</button>
+    <div class="container">
+        <header>
+            <h1>精選影片庫</h1>
+            <div>
+                <button id="adminLoginBtn" onclick="checkPassword()" class="btn">🔑 管理員登入</button>
+            </div>
+        </header>
+
+        <!-- 管理員控制區 -->
+        <div id="adminArea" class="hidden">
+            <h3>🛠️ 管理員控制台</h3>
+            <div class="admin-actions">
+                <button onclick="lockAdmin()" class="btn">🚪 登出系統</button>
+                <button onclick="flipOrder()" class="btn">↕️ 顛倒目前順序</button>
+                <button onclick="removeCurrentTab()" class="btn btn-danger">🗑️ 刪除目前分頁</button>
+            </div>
+            
+            <div class="admin-input-group">
+                <input type="text" id="newTabName" placeholder="輸入全新分頁名稱...">
+                <button onclick="addTab()" class="btn btn-primary" style="white-space:nowrap;">📁 新增分頁</button>
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+                <textarea id="rawInput" rows="3" placeholder="批量匯入格式：&#10;影片標題1  https://youtu.be/xxx&#10;影片標題2  https://youtu.be/yyy"></textarea>
+            </div>
+            <button onclick="importVideos()" class="btn btn-primary" style="width: 100%; justify-content: center;">⚡ 智能解析並匯入影片</button>
+        </div>
+
+        <!-- 分頁導覽欄 -->
+        <div id="tabsContainer">
+            <div style="color: var(--text-muted); font-size:14px;">正在建立安全連線...</div>
+        </div>
+
+        <!-- 影片卡片容器 -->
+        <div class="video-grid" id="videoWrapper">
+            <div class="status-msg">正在同步 Firebase 資料庫...</div>
+        </div>
     </div>
-
-    <!-- 登入按鈕 -->
-    <div style="text-align: right; margin-bottom: 10px;">
-        <button onclick="checkPassword()">管理員登入</button>
-    </div>
-
-    <!-- 分頁按鈕容器 -->
-    <div id="tabsContainer">載入中...</div>
-
-    <!-- 影片表格 -->
-    <table>
-        <thead>
-            <tr>
-                <th>影片標題</th>
-                <th>操作</th>
-                <th class="admin-ctrl hidden">管理</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody">
-            <tr><td colspan="2" style="text-align:center;">正在連線到 Firebase...</td></tr>
-        </tbody>
-    </table>
 
     <script>
-        // 2. Firebase 初始化設定
+        // Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyBl7yqNoQQBZOt2v6aN_wre1if7cXGFOns",
             authDomain: "fir-836a9.firebaseapp.com",
@@ -76,29 +152,53 @@
             appId: "1:229605718156:web:533d91c7a0907212a7a3a9"
         };
 
-        // 確保剛才引入的全域對象存在，進行安全對接
         const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database(); 
         const dbRef = database.ref('video_data');
 
-        // 預設數據
+        // 預設兜底數據
         const defaultData = {
             "TankShow": [
-                { title: "TankShow 10 360", url: "https://youtu.be/A5ruMMW0_vY" },
-                { title: "TankShow 10", url: "https://youtu.be/haUWQOHag5s" }
+                { title: "TankShow 10 360 現場精采片段", url: "https://youtu.be/A5ruMMW0_vY" },
+                { title: "TankShow 10 完整紀錄檔", url: "https://youtu.be/haUWQOHag5s" }
             ],
-            "Zoo": [
-                { title: "可愛熊貓日常", url: "https://youtu.be/example_zoo" }
+            "動物精選": [
+                { title: "可愛大熊貓的搞笑日常派對", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }
             ]
         };
 
-        // 全域變數初始化
         window.db = {}; 
         window.currentTab = "";
         window.isAdminMode = false;
         let dragSrcIndex = null;
 
-        // 3. 監聽 Firebase 資料庫狀態
+        // 智能提取 YouTube 影片 ID 並產生預覽圖 URL
+        function getYoutubeThumb(url) {
+            if (!url) return 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&q=80';
+            
+            let videoId = null;
+            try {
+                // 處理 youtu.be/xxx
+                if (url.includes('youtu.be/')) {
+                    videoId = url.split('youtu.be/')[1].split(/[?#]/)[0];
+                } 
+                // 處理 youtube.com/watch?v=xxx 或 youtube.com/embed/xxx
+                else if (url.includes('v=')) {
+                    videoId = url.split('v=')[1].split('&')[0].split(/[?#]/)[0];
+                } else if (url.includes('embed/')) {
+                    videoId = url.split('embed/')[1].split(/[?#]/)[0];
+                }
+            } catch(e) {
+                console.error("解析網址失敗", e);
+            }
+
+            // 如果成功抓到 ID，回傳 YouTube 官方高清封面圖網址，否則給一張現代感乾淨預設圖
+            return videoId 
+                ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` 
+                : 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&q=80';
+        }
+
+        // Firebase 實時動態監聽
         dbRef.on('value', (snapshot) => {
             try {
                 const data = snapshot.val();
@@ -115,170 +215,208 @@
                 }
                 
                 window.renderTabs();
-                window.renderTable();
+                window.renderCards();
             } catch (error) {
-                console.error("讀取 Firebase 資料時出錯: ", error);
+                console.error("資料解析錯誤: ", error);
             }
         }, (error) => {
-            console.error("Firebase 連線失敗：", error);
-            alert("Firebase 連線失敗！請檢查你資料庫的 Rules 是否已設定為公開（.read: true）。");
+            console.error("連線出錯：", error);
+            alert("同步失敗，請檢查資料庫規則權限。");
         });
 
-        // 4. 儲存邏輯
         window.saveToStorage = function() {
             dbRef.set(window.db)
-                .then(() => console.log("Firebase 同步成功！"))
-                .catch((error) => console.error("同步失敗：", error));
+                .then(() => console.log("雲端同步成功"))
+                .catch((err) => console.error("同步失敗", err));
         }
 
-        // --- UI 渲染與操作邏輯 ---
-
+        // 渲染分頁標籤
         window.renderTabs = function() {
             const container = document.getElementById('tabsContainer');
             if (!container) return;
             container.innerHTML = '';
-            if (!window.db) return;
             
-            Object.keys(window.db).forEach(tabName => {
+            const tabs = Object.keys(window.db || {});
+            if(tabs.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-muted);">暫無分頁，請登入管理員建立</div>';
+                return;
+            }
+
+            tabs.forEach(tabName => {
                 const btn = document.createElement('button');
                 btn.className = `tab-btn ${tabName === window.currentTab ? 'active' : ''}`;
                 btn.innerText = tabName;
                 btn.onclick = function() {
                     window.currentTab = tabName;
                     window.renderTabs();
-                    window.renderTable();
+                    window.renderCards();
                 };
                 container.appendChild(btn);
             });
         }
 
-        window.renderTable = function() {
-            const tbody = document.getElementById('tableBody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
+        // 渲染全新卡片式影片清單 (替代舊版 Table)
+        window.renderCards = function() {
+            const wrapper = document.getElementById('videoWrapper');
+            if (!wrapper) return;
+            wrapper.innerHTML = '';
 
             if (!window.db || !window.currentTab || !window.db[window.currentTab] || window.db[window.currentTab].length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${window.isAdminMode ? 3 : 2}" style="text-align:center; color:#999;">此分頁暫無影片</td></tr>`;
+                wrapper.innerHTML = `<div class="status-msg">📭 此分頁目前空空如也</div>`;
                 return;
             }
 
             window.db[window.currentTab].forEach((item, index) => {
-                const tr = document.createElement('tr');
+                const card = document.createElement('div');
+                card.className = 'video-card';
                 
+                // 如果是管理員模式，加入拖拽事件與視覺標記
                 if (window.isAdminMode) {
-                    tr.draggable = true;
-                    tr.className = "draggable";
-                    tr.addEventListener('dragstart', (e) => handleDragStart(e, index));
-                    tr.addEventListener('dragover', handleDragOver);
-                    tr.addEventListener('dragenter', (e) => tr.classList.add('drag-over'));
-                    tr.addEventListener('dragleave', (e) => tr.classList.remove('drag-over'));
-                    tr.addEventListener('drop', (e) => handleDrop(e, index));
-                    tr.addEventListener('dragend', () => {
-                        document.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+                    card.draggable = true;
+                    card.classList.add('draggable');
+                    card.innerHTML = `<div class="drag-badge">☰ 拖曳排序</div>`;
+                    
+                    card.addEventListener('dragstart', (e) => {
+                        dragSrcIndex = index;
+                        e.dataTransfer.effectAllowed = 'move';
+                    });
+                    card.addEventListener('dragover', (e) => e.preventDefault());
+                    card.addEventListener('dragenter', () => card.classList.add('drag-over'));
+                    card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+                    card.addEventListener('drop', (e) => {
+                        e.stopPropagation();
+                        if (dragSrcIndex !== null && dragSrcIndex !== index) {
+                            const list = window.db[window.currentTab];
+                            const targetItem = list.splice(dragSrcIndex, 1)[0];
+                            list.splice(index, 0, targetItem);
+                            window.saveToStorage();
+                        }
+                        dragSrcIndex = null;
+                    });
+                    card.addEventListener('dragend', () => {
+                        document.querySelectorAll('.video-card').forEach(c => c.classList.remove('drag-over'));
                     });
                 }
+
+                // 建立封面圖片區域
+                const thumbWrapper = document.createElement('div');
+                thumbWrapper.className = 'thumb-wrapper';
                 
-                const tdTitle = document.createElement('td');
-                const handle = window.isAdminMode ? `<span class="drag-handle">☰</span>` : '';
-                tdTitle.innerHTML = `${handle}<strong>${item.title || '無標題'}</strong>`;
-                tr.appendChild(tdTitle);
+                const img = document.createElement('img');
+                img.className = 'thumb-img';
+                img.src = getYoutubeThumb(item.url);
+                img.loading = 'lazy';
+                img.alt = item.title;
+                
+                const overlay = document.createElement('div');
+                overlay.className = 'play-overlay';
+                overlay.innerHTML = `<div class="play-icon">▶</div>`;
+                
+                thumbWrapper.appendChild(img);
+                thumbWrapper.appendChild(overlay);
+                card.appendChild(thumbWrapper);
 
-                const tdView = document.createElement('td');
-                tdView.innerHTML = `<a class="btn-view" href="${item.url || '#'}" target="_blank">▶ 開享影片</a>`;
-                tr.appendChild(tdView);
+                // 建立文字與操控區域
+                const info = document.createElement('div');
+                info.className = 'video-info';
+                
+                const title = document.createElement('div');
+                title.className = 'video-title';
+                title.innerText = item.title || '未命名影片';
+                info.appendChild(title);
 
-                const tdCtrl = document.createElement('td');
-                tdCtrl.className = `admin-ctrl ${window.isAdminMode ? '' : 'hidden'}`;
-                tdCtrl.innerHTML = `<button onclick="deleteVideo(${index})" class="btn-danger">刪除</button>`;
-                tr.appendChild(tdCtrl);
+                const actions = document.createElement('div');
+                actions.className = 'card-actions';
+                
+                const link = document.createElement('a');
+                link.className = 'btn-play-link';
+                link.href = item.url || '#';
+                link.target = '_blank';
+                link.innerHTML = '觀看影片 ↗';
+                actions.appendChild(link);
 
-                tbody.appendChild(tr);
+                // 管理員專屬刪除鈕
+                if (window.isAdminMode) {
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'btn btn-danger';
+                    delBtn.style.padding = '6px 12px';
+                    delBtn.style.fontSize = '12px';
+                    delBtn.innerText = '刪除';
+                    delBtn.onclick = (e) => {
+                        e.preventDefault();
+                        window.deleteVideo(index);
+                    };
+                    actions.appendChild(delBtn);
+                }
+
+                info.appendChild(actions);
+                card.appendChild(info);
+                wrapper.appendChild(card);
             });
         }
 
-        function handleDragStart(e, index) {
-            dragSrcIndex = index;
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', index);
-        }
-
-        function handleDragOver(e) {
-            if (e.preventDefault) e.preventDefault(); 
-            e.dataTransfer.dropEffect = 'move';
-            return false;
-        }
-
-        function handleDrop(e, targetIndex) {
-            if (e.stopPropagation) e.stopPropagation(); 
-            if (dragSrcIndex !== null && dragSrcIndex !== targetIndex) {
-                const targetArray = window.db[window.currentTab];
-                const movedItem = targetArray.splice(dragSrcIndex, 1)[0];
-                targetArray.splice(targetIndex, 0, movedItem);
-                window.saveToStorage();
-            }
-            dragSrcIndex = null;
-        }
-
+        // 顛倒順序
         window.flipOrder = function() {
             if (!window.currentTab || !window.db[window.currentTab] || window.db[window.currentTab].length <= 1) return;
             window.db[window.currentTab].reverse();
             window.saveToStorage();
-            alert(`已成功翻轉「${window.currentTab}」內所有影片的排列順序！`);
         }
 
+        // 密碼登入
         window.checkPassword = function() {
-            if (window.isAdminMode) return alert("你已經處於管理員模式。");
-            const password = prompt("請輸入管理員密碼：");
+            if (window.isAdminMode) return;
+            const password = prompt("請輸入管理員權限密碼：");
             if (password === "3005") {
                 window.isAdminMode = true;
-                const adminArea = document.getElementById('adminArea');
-                if (adminArea) adminArea.classList.remove('hidden');
-                document.querySelectorAll('.admin-ctrl').forEach(el => el.classList.remove('hidden'));
-                window.renderTable();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                document.getElementById('adminArea').classList.remove('hidden');
+                document.getElementById('adminLoginBtn').innerText = "🔒 鎖定後台";
+                window.renderCards();
             } else if (password !== null) {
-                alert("密碼錯誤！");
+                alert("密碼不正確！");
             }
         }
 
+        // 登出
         window.lockAdmin = function() {
             window.isAdminMode = false;
-            const adminArea = document.getElementById('adminArea');
-            if (adminArea) adminArea.classList.add('hidden');
-            document.querySelectorAll('.admin-ctrl').forEach(el => el.classList.add('hidden'));
-            window.renderTable();
+            document.getElementById('adminArea').classList.add('hidden');
+            document.getElementById('adminLoginBtn').innerText = "🔑 管理員登入";
+            window.renderCards();
         }
 
+        // 新增分頁
         window.addTab = function() {
-            const nameInput = document.getElementById('newTabName');
-            if (!nameInput) return;
-            const name = nameInput.value.trim();
-            if (!name) return alert('請輸入分頁名稱！');
-            if (window.db[name]) return alert('此分頁名稱已存在！');
+            const input = document.getElementById('newTabName');
+            const name = input ? input.value.trim() : '';
+            if (!name) return alert('請填寫分頁名稱');
+            if (window.db[name]) return alert('此名稱已存在');
+            
             window.db[name] = [];
             window.currentTab = name;
-            nameInput.value = '';
+            input.value = '';
             window.saveToStorage();
         }
 
+        // 刪除分頁
         window.removeCurrentTab = function() {
             if (!window.currentTab) return;
-            if (confirm(`確定要刪除整個「${window.currentTab}」分頁嗎？`)) {
+            if (confirm(`確定要永久刪除「${window.currentTab}」分頁與底下所有影片嗎？`)) {
                 delete window.db[window.currentTab];
-                const remainingTabs = Object.keys(window.db);
-                window.currentTab = remainingTabs.length > 0 ? remainingTabs[0] : "";
+                const remaining = Object.keys(window.db);
+                window.currentTab = remaining.length > 0 ? remaining[0] : "";
                 window.saveToStorage();
             }
         }
 
+        // 智慧批量匯入
         window.importVideos = function() {
-            if (!window.currentTab) return alert('請先選擇或創建一個分頁！');
-            const inputEl = document.getElementById('rawInput');
-            if (!inputEl) return;
-            const input = inputEl.value.trim();
-            if (!input) return alert('請先貼上影片資料！');
+            if (!window.currentTab) return alert('請先建立或選擇分頁');
+            const textarea = document.getElementById('rawInput');
+            if (!textarea) return;
+            const content = textarea.value.trim();
+            if (!content) return alert('內容不能為空');
 
-            const lines = input.split('\n');
+            const lines = content.split('\n');
             let count = 0;
 
             lines.forEach(line => {
@@ -295,17 +433,16 @@
 
             if (count > 0) {
                 window.saveToStorage();
-                inputEl.value = '';
-                alert(`成功追加了 ${count} 條影片！`);
+                textarea.value = '';
+                alert(`成功匯入 ${count} 部影片！`);
             } else {
-                alert('未能解析資料，請檢查格式。');
+                alert('格式無法辨識，請確保標題與網址之間有「空格」或「Tab 鍵」隔開。');
             }
         }
 
+        // 刪除單部影片
         window.deleteVideo = function(index) {
-            if (!window.db || !window.db[window.currentTab] || !window.db[window.currentTab][index]) return;
-            const videoTitle = window.db[window.currentTab][index].title || "未命名影片";
-            if (confirm(`確定要刪除影片「${videoTitle}」嗎？`)) {
+            if (confirm("確定要移除這部影片嗎？")) {
                 window.db[window.currentTab].splice(index, 1);
                 window.saveToStorage();
             }
