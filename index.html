@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TankShow 影片清單</title>
+    <title>影片群組分享清單</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f9f9f9;
+            background-color: #f4f6f9;
             color: #333;
             margin: 0;
             padding: 20px;
         }
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
             background: white;
             padding: 30px;
@@ -23,41 +23,38 @@
         h1 {
             color: #ff0000;
             margin-top: 0;
-            font-size: 24px;
+            font-size: 26px;
+        }
+        
+        /* Tab 樣式 */
+        .tabs-container {
             display: flex;
-            align-items: center;
             gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            flex-wrap: wrap;
         }
-        textarea {
-            width: 100%;
-            height: 120px;
-            padding: 12px;
-            box-sizing: border-box;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 14px;
-            resize: vertical;
-            margin-bottom: 15px;
-        }
-        textarea:focus {
-            border-color: #ff0000;
-            outline: none;
-        }
-        button {
-            background-color: #ff0000;
-            color: white;
+        .tab-btn {
+            background: #e4e6eb;
+            color: #333;
             border: none;
-            padding: 12px 24px;
+            padding: 10px 20px;
             font-size: 16px;
             font-weight: bold;
-            border-radius: 6px;
+            border-radius: 20px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
         }
-        button:hover {
-            background-color: #cc0000;
+        .tab-btn:hover {
+            background: #d8dadf;
         }
+        .tab-btn.active {
+            background: #ff0000;
+            color: white;
+        }
+
+        /* 後台管理區 */
         .admin-section {
             margin-bottom: 30px;
             padding: 20px;
@@ -65,22 +62,70 @@
             border: 1px solid #ffe3e3;
             border-radius: 8px;
         }
+        .admin-block {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #eee;
+            margin-bottom: 15px;
+        }
+        .admin-block h4 {
+            margin-top: 0;
+            color: #444;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: monospace;
+            margin-bottom: 10px;
+        }
+        input[type="text"], select {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #ff0000;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 5px;
+        }
+        button:hover {
+            background-color: #cc0000;
+        }
+        .btn-secondary { background-color: #666; }
+        .btn-secondary:hover { background-color: #444; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-danger:hover { background-color: #bd2130; }
+
+        /* 表格與列表 */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 10px;
         }
         th, td {
-            padding: 14px;
+            padding: 12px 14px;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
         th {
-            background-color: #f1f1f1;
+            background-color: #f8f9fa;
             font-weight: 600;
-        }
-        tr:hover {
-            background-color: #fdfdfd;
         }
         .btn-view {
             display: inline-block;
@@ -90,15 +135,23 @@
             border-radius: 4px;
             font-size: 14px;
             text-decoration: none;
+            font-weight: 500;
         }
         .btn-view:hover {
             background: #ff0000;
             color: white;
         }
-        .hidden {
-            display: none !important;
+        
+        /* 排序與管理按鈕 */
+        .action-btns button {
+            padding: 4px 8px;
+            font-size: 12px;
+            margin-right: 3px;
+            margin-bottom: 0;
         }
-        /* 右下角管理員登入按鈕 */
+
+        .hidden { display: none !important; }
+        
         .admin-login-trigger {
             position: fixed;
             bottom: 15px;
@@ -108,105 +161,235 @@
             cursor: pointer;
             user-select: none;
         }
-        .admin-login-trigger:hover {
-            color: #ff0000;
-        }
+        .admin-login-trigger:hover { color: #ff0000; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🎬 TankShow 影片清單</h1>
+    <h1>🎬 影片分享清單</h1>
     
-    <!-- 管理員輸入區（預設隱藏，只有輸入正確密碼先會現身） -->
+    <!-- 頂部 Tabs 切換區 -->
+    <div class="tabs-container" id="tabsContainer"></div>
+    
+    <!-- 管理員後台 (密碼 3005 解鎖) -->
     <div class="admin-section hidden" id="adminArea">
-        <h3 style="margin-top: 0; color: #ff0000;">🔐 管理員後台</h3>
-        <p style="color:#666; font-size: 14px;">將你在 Console 複製出來的「片名 + 網址」直接貼在下面：</p>
-        <textarea id="rawInput" placeholder="TankShow 10 360	https://youtu.be/A5ruMMW0_vY&#10;TankShow 10	https://youtu.be/haUWQOHag5s"></textarea>
-        <button onclick="generateList()">發佈並更新清單</button>
-        <button onclick="lockAdmin()" style="background-color: #666; margin-left: 10px;">登出鎖定</button>
+        <h3 style="margin-top: 0; color: #ff0000; display:flex; justify-content:space-between;">
+            <span>🔐 管理員後台</span>
+            <button onclick="lockAdmin()" class="btn-secondary" style="margin:0;">隱藏後台</button>
+        </h3>
+        
+        <!-- 1. 管理 Tab -->
+        <div class="admin-block">
+            <h4>1. 分頁（Tab）管理</h4>
+            <input type="text" id="newTabName" placeholder="新分頁名稱 (例如: Zoo)">
+            <button onclick="addTab()">新增分頁</button>
+            <div style="margin-top: 10px; color: #666; font-size: 13px;">
+                危險操作：<button onclick="removeCurrentTab()" class="btn-danger" style="padding: 5px 10px; font-size: 12px;">刪除當前所選分頁</button> (會連同裡面所有影片一起刪除)
+            </div>
+        </div>
+
+        <!-- 2. 批量匯入影片 -->
+        <div class="admin-block">
+            <h4>2. 批量匯入影片 (自動解析)</h4>
+            <p style="color:#666; font-size: 13px; margin: 0 0 10px 0;">將你從 Console 撈出來的「片名 + 網址」貼在下面，會直接加入到目前選中的分頁：</p>
+            <textarea id="rawInput" placeholder="TankShow 10 360	https://youtu.be/A5ruMMW0_vY"></textarea>
+            <button onclick="importVideos()">解析並加進當前分頁</button>
+        </div>
     </div>
 
-    <!-- 顯示清單的表格 -->
+    <!-- 影片顯示表格 -->
     <table id="videoTable">
         <thead>
             <tr>
                 <th>影片名稱</th>
-                <th>觀看連結</th>
+                <th style="width: 120px;">觀看</th>
+                <th class="admin-ctrl hidden" style="width: 180px;">管理排序/刪除</th>
             </tr>
         </thead>
-        <tbody id="tableBody">
-            <!-- 初始或載入後的影片資料會放到這裡 -->
-        </tbody>
+        <tbody id="tableBody"></tbody>
     </table>
 </div>
 
-<!-- 隱藏的密碼觸發點 -->
 <div class="admin-login-trigger" onclick="checkPassword()">🔒 Admin</div>
 
 <script>
-    // 預設資料（如果 LocalStorage 冇嘢，就會用呢個作為底稿，免得一開網頁空冧冧）
-    const defaultData = [
-        { title: "TankShow 10 360", url: "https://youtu.be/A5ruMMW0_vY" },
-        { title: "TankShow 10", url: "https://youtu.be/haUWQOHag5s" },
-        { title: "TankShow 9 360", url: "https://youtu.be/m1p065SjmUg" },
-        { title: "TankShow 9", url: "https://youtu.be/-oKF0DePxew" },
-        { title: "TankShow 8 360", url: "https://youtu.be/hMtX_QGJsdQ" },
-        { title: "TankShow 8", url: "https://youtu.be/PDpnGTuuuHc" },
-        { title: "TankShow 7 360", url: "https://youtu.be/H_R3Ej3on_s" },
-        { title: "TankShow 7", url: "https://youtu.be/R3dhReuqg8A" },
-        { title: "TankShow 6 360", url: "https://youtu.be/FqfNRBBdkjk" },
-        { title: "TankShow 6", url: "https://youtu.be/kwpFhStc0VM" },
-        { title: "TankShow 5 360", url: "https://youtu.be/98Mk-vKoYFs" },
-        { title: "TankShow 5", url: "https://youtu.be/K34vMxiIXwQ" },
-        { title: "TankShow 4 360", url: "https://youtu.be/8-aBc7QEaxk" },
-        { title: "TankShow 4", url: "https://youtu.be/2QAxFwwRpQE" },
-        { title: "TankShow 3 360", url: "https://youtu.be/MSyskem5Yr0" },
-        { title: "TankShow 3", url: "https://youtu.be/ddE6x26SGk4" },
-        { title: "TankShow 2 360", url: "https://youtu.be/nkJ-YXQHnnY" },
-        { title: "TankShow 2", url: "https://youtu.be/o89vUGDvOcY" },
-        { title: "TankShow 1 360", url: "https://youtu.be/7pF0yDVWpuw" },
-        { title: "TankShow 1", url: "https://youtu.be/1rubymeLgpA" },
-        { title: "TankShow 8", url: "https://youtu.be/JcqKCRhl_KI" }
-    ];
-
-    window.onload = function() {
-        const savedData = localStorage.getItem('tankshow_videos');
-        if (savedData) {
-            renderTable(JSON.parse(savedData));
-        } else {
-            // 如果第一次入網頁未儲存過任何嘢，先顯示你上面俾我個21條List
-            renderTable(defaultData);
-        }
+    // 預設初始數據結構 (包含多個群組)
+    const defaultData = {
+        "TankShow": [
+            { title: "TankShow 10 360", url: "https://youtu.be/A5ruMMW0_vY" },
+            { title: "TankShow 10", url: "https://youtu.be/haUWQOHag5s" },
+            { title: "TankShow 9 360", url: "https://youtu.be/m1p065SjmUg" },
+            { title: "TankShow 9", url: "https://youtu.be/-oKF0DePxew" },
+            { title: "TankShow 8 360", url: "https://youtu.be/hMtX_QGJsdQ" },
+            { title: "TankShow 8", url: "https://youtu.be/PDpnGTuuuHc" },
+            { title: "TankShow 7 360", url: "https://youtu.be/H_R3Ej3on_s" },
+            { title: "TankShow 7", url: "https://youtu.be/R3dhReuqg8A" },
+            { title: "TankShow 6 360", url: "https://youtu.be/FqfNRBBdkjk" },
+            { title: "TankShow 6", url: "https://youtu.be/kwpFhStc0VM" },
+            { title: "TankShow 5 360", url: "https://youtu.be/98Mk-vKoYFs" },
+            { title: "TankShow 5", url: "https://youtu.be/K34vMxiIXwQ" },
+            { title: "TankShow 4 360", url: "https://youtu.be/8-aBc7QEaxk" },
+            { title: "TankShow 4", url: "https://youtu.be/2QAxFwwRpQE" },
+            { title: "TankShow 3 360", url: "https://youtu.be/MSyskem5Yr0" },
+            { title: "TankShow 3", url: "https://youtu.be/ddE6x26SGk4" },
+            { title: "TankShow 2 360", url: "https://youtu.be/nkJ-YXQHnnY" },
+            { title: "TankShow 2", url: "https://youtu.be/o89vUGDvOcY" },
+            { title: "TankShow 1 360", url: "https://youtu.be/7pF0yDVWpuw" },
+            { title: "TankShow 1", url: "https://youtu.be/1rubymeLgpA" },
+            { title: "TankShow 8 (Dup)", url: "https://youtu.be/JcqKCRhl_KI" }
+        ],
+        "Zoo": [
+            { title: "可愛熊貓日常", url: "https://youtu.be/範例網址1" },
+            { title: "企鵝餵食秀", url: "https://youtu.be/範例網址2" }
+        ]
     };
 
-    // 驗證密碼
-    function checkPassword() {
-        const password = prompt("請輸入管理員密碼以解鎖後台：");
-        if (password === "3005") {
-            document.getElementById('adminArea').classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else if (password !== null) {
-            alert("密碼錯誤！無法解鎖。");
+    let db = {}; 
+    let currentTab = "";
+    let isAdminMode = false;
+
+    window.onload = function() {
+        const savedData = localStorage.getItem('multi_tab_videos');
+        if (savedData) {
+            db = JSON.parse(savedData);
+        } else {
+            db = defaultData;
         }
+        
+        // 確保至少有一個 Tab
+        const tabs = Object.keys(db);
+        currentTab = tabs.length > 0 ? tabs[0] : "";
+        
+        renderTabs();
+        renderTable();
+    };
+
+    // 渲染所有 Tabs 按鈕
+    function renderTabs() {
+        const container = document.getElementById('tabsContainer');
+        container.innerHTML = '';
+        
+        Object.keys(db).forEach(tabName => {
+            const btn = document.createElement('button');
+            btn.className = `tab-btn ${tabName === currentTab ? 'active' : ''}`;
+            btn.innerText = tabName;
+            btn.onclick = function() {
+                currentTab = tabName;
+                renderTabs();
+                renderTable();
+            };
+            container.appendChild(btn);
+        });
     }
 
-    // 重新鎖定管理員區
-    function lockAdmin() {
-        document.getElementById('adminArea').classList.add('hidden');
-        document.getElementById('rawInput').value = '';
-    }
+    // 渲染當前 Tab 內的影片表格
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
 
-    // 解析貼上的文字並儲存
-    function generateList() {
-        const input = document.getElementById('rawInput').value.trim();
-        if (!input) {
-            alert('請先貼上影片資料！');
+        if (!currentTab || !db[currentTab] || db[currentTab].length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${isAdminMode ? 3 : 2}" style="text-align:center; color:#999;">此分頁暫無影片</td></tr>`;
             return;
         }
 
+        db[currentTab].forEach((item, index) => {
+            const tr = document.createElement('tr');
+            
+            // 影片名稱
+            const tdTitle = document.createElement('td');
+            tdTitle.innerHTML = `<strong>${item.title}</strong>`;
+            tr.appendChild(tdTitle);
+
+            // 觀看連結
+            const tdView = document.createElement('td');
+            tdView.innerHTML = `<a class="btn-view" href="${item.url}" target="_blank">▶ 開啟影片</a>`;
+            tr.appendChild(tdView);
+
+            // 管理控制項（只有 Admin 模式會顯示）
+            const tdCtrl = document.createElement('td');
+            tdCtrl.className = `admin-ctrl action-btns ${isAdminMode ? '' : 'hidden'}`;
+            tdCtrl.innerHTML = `
+                <button onclick="moveVideo(${index}, -1)" class="btn-secondary" ${index === 0 ? 'disabled' : ''}>▲ 上移</button>
+                <button onclick="moveVideo(${index}, 1)" class="btn-secondary" ${index === db[currentTab].length - 1 ? 'disabled' : ''}>▼ 下移</button>
+                <button onclick="deleteVideo(${index})" class="btn-danger">刪除</button>
+            `;
+            tr.appendChild(tdCtrl);
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    // 驗證管理員密碼
+    function checkPassword() {
+        if (isAdminMode) {
+            alert("你已經處於管理員模式。");
+            return;
+        }
+        const password = prompt("請輸入管理員密碼：");
+        if (password === "3005") {
+            isAdminMode = true;
+            document.getElementById('adminArea').classList.remove('hidden');
+            // 顯示表格中的管理 Column
+            document.querySelectorAll('.admin-ctrl').forEach(el => el.classList.remove('hidden'));
+            renderTable(); // 重新渲染以套用按鈕狀態
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (password !== null) {
+            alert("密碼錯誤！");
+        }
+    }
+
+    // 隱藏後台
+    function lockAdmin() {
+        isAdminMode = false;
+        document.getElementById('adminArea').classList.add('hidden');
+        document.querySelectorAll('.admin-ctrl').forEach(el => el.classList.add('hidden'));
+        renderTable();
+    }
+
+    // 儲存數據到 LocalStorage
+    function saveToStorage() {
+        localStorage.setItem('multi_tab_videos', JSON.stringify(db));
+    }
+
+    /* --- 後台功能：Tab 管理 --- */
+    
+    function addTab() {
+        const name = document.getElementById('newTabName').value.trim();
+        if (!name) return alert('請輸入分頁名稱！');
+        if (db[name]) return alert('此分頁名稱已存在！');
+        
+        db[name] = [];
+        currentTab = name; // 自動切換到新分頁
+        document.getElementById('newTabName').value = '';
+        saveToStorage();
+        renderTabs();
+        renderTable();
+        alert(`已成功新增分頁「${name}」`);
+    }
+
+    function removeCurrentTab() {
+        if (!currentTab) return;
+        if (confirm(`確定要刪除整個「${currentTab}」分頁嗎？裡面所有影片將會永久消失！`)) {
+            delete db[currentTab];
+            const remainingTabs = Object.keys(db);
+            currentTab = remainingTabs.length > 0 ? remainingTabs[0] : "";
+            saveToStorage();
+            renderTabs();
+            renderTable();
+        }
+    }
+
+    /* --- 後台功能：影片管理與排序 --- */
+
+    // 批量解析匯入
+    function importVideos() {
+        if (!currentTab) return alert('請先選擇或創建一個分頁！');
+        const input = document.getElementById('rawInput').value.trim();
+        if (!input) return alert('請先貼上影片資料！');
+
         const lines = input.split('\n');
-        const videoList = [];
+        let count = 0;
 
         lines.forEach(line => {
             const parts = line.split(/\t| {2,}/); 
@@ -214,35 +397,44 @@
                 const title = parts[0].trim();
                 const url = parts[parts.length - 1].trim(); 
                 if (url.startsWith('http')) {
-                    videoList.push({ title, url });
+                    db[currentTab].push({ title, url });
+                    count++;
                 }
             }
         });
 
-        if (videoList.length > 0) {
-            // 儲存至本地瀏覽器
-            localStorage.setItem('tankshow_videos', JSON.stringify(videoList));
-            renderTable(videoList);
-            alert('清單更新成功！');
-            lockAdmin(); // 自動收埋個後台
+        if (count > 0) {
+            saveToStorage();
+            renderTable();
+            document.getElementById('rawInput').value = '';
+            alert(`成功在「${currentTab}」分頁中追加了 ${count} 條影片！`);
         } else {
-            alert('未能解析資料，請確保格式正確（片名與網址之間有 Tab 或多個空格）。');
+            alert('未能解析資料，請檢查格式。');
         }
     }
 
-    // 渲染表格
-    function renderTable(data) {
-        const tbody = document.getElementById('tableBody');
-        tbody.innerHTML = '';
+    // 變更影片順序 (direction: -1 代表上移, 1 代表下移)
+    function moveVideo(index, direction) {
+        const targetIndex = index + direction;
+        // 邊界安全檢查
+        if (targetIndex < 0 || targetIndex >= db[currentTab].length) return;
+        
+        // 元素互換位置 (Swap)
+        const temp = db[currentTab][index];
+        db[currentTab][index] = db[currentTab][targetIndex];
+        db[currentTab][targetIndex] = temp;
+        
+        saveToStorage();
+        renderTable();
+    }
 
-        data.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${item.title}</strong></td>
-                <td><a class="btn-view" href="${item.url}" target="_blank">▶ 開啟影片</a></td>
-            `;
-            tbody.appendChild(tr);
-        });
+    // 刪除單一影片
+    function deleteVideo(index) {
+        if (confirm(`確定要刪除影片「${db[currentTab][index].title}」嗎？`)) {
+            db[currentTab].splice(index, 1);
+            saveToStorage();
+            renderTable();
+        }
     }
 </script>
 
