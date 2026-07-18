@@ -57,19 +57,15 @@
         #tabsContainer::-webkit-scrollbar { height: 4px; }
         #tabsContainer::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
         
-        /* 管理員模式下的分頁膠囊包裝 */
-        .tab-wrapper { display: inline-flex; align-items: center; background: #e2e8f0; border-radius: 24px; padding: 3px; gap: 2px; transition: all 0.2s; }
-        .tab-wrapper.active { background: var(--primary); }
+        /* 分頁按鈕樣式 */
+        .tab-btn { padding: 8px 18px; border-radius: 20px; border: none; background: #edf2f7; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; font-size: 14px; border: 1px solid transparent; }
+        .tab-btn:hover { color: var(--text-main); background: #e2e8f0; }
+        .tab-btn.active { background: var(--primary); color: white; }
         
-        .tab-btn { padding: 8px 18px; border-radius: 20px; border: none; background: transparent; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; font-size: 14px; }
-        .tab-btn:hover { color: var(--text-main); }
-        .tab-wrapper.active .tab-btn { color: white; }
-        
-        /* 分頁移動小箭頭 */
-        .tab-move-btn { border: none; background: rgba(255, 255, 255, 0.6); color: #333; width: 22px; height: 22px; border-radius: 50%; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.1s; }
-        .tab-move-btn:hover { background: #fff; transform: scale(1.1); }
-        .tab-wrapper.active .tab-move-btn { background: rgba(255, 255, 255, 0.2); color: white; }
-        .tab-wrapper.active .tab-move-btn:hover { background: rgba(255, 255, 255, 0.4); }
+        /* 管理員模式下的拖曳分頁樣式 */
+        .tab-btn.draggable { cursor: grab; position: relative; }
+        .tab-btn.draggable:active { cursor: grabbing; }
+        .tab-btn.drag-over { border: 1px dashed var(--primary); transform: scale(0.95); opacity: 0.7; }
 
         /* 影片卡片網格 */
         .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
@@ -123,18 +119,18 @@
         <div id="adminArea" class="hidden">
             <h3>🛠️ 管理員控制台</h3>
             <div class="admin-actions">
-                <button onclick="lockAdmin()" class="btn">🚪 登出系統</button>
+                <button onclick="lockAdmin()" class="btn">🔒 鎖定後台</button>
                 <button onclick="flipOrder()" class="btn">↕️ 顛倒目前影片順序</button>
                 <button onclick="removeCurrentTab()" class="btn btn-danger">🗑️ 刪除目前分頁</button>
             </div>
             
             <div class="admin-input-group">
-                <input type="text" id="newTabName" placeholder="輸入全新分頁名稱...">
+                <input type="text" id="newTabName" placeholder="快速新增全新分頁名稱...">
                 <button onclick="addTab()" class="btn btn-primary" style="white-space:nowrap;">📁 新增分頁</button>
             </div>
             
             <div style="margin-bottom: 12px;">
-                <textarea id="rawInput" rows="3" placeholder="批量匯入格式：&#10;影片標題1  https://youtu.be/xxx&#10;影片標題2  https://youtu.be/yyy"></textarea>
+                <textarea id="rawInput" rows="5" placeholder="💡 智能匯入支援「自動建群」格式：&#10;[新分頁名稱]  <- 加上這行會自動幫你建分頁！&#10;影片標題1 https://youtu.be/xxx&#10;影片標題2 https://youtu.be/yyy"></textarea>
             </div>
             <button onclick="importVideos()" class="btn btn-primary" style="width: 100%; justify-content: center;">⚡ 智能解析並匯入影片</button>
         </div>
@@ -181,6 +177,7 @@
         window.currentTab = "";
         window.isAdminMode = false;
         let dragSrcIndex = null;
+        let tabDragSrcIndex = null;
 
         function getYoutubeThumb(url) {
             if (!url) return 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&q=80';
@@ -224,7 +221,7 @@
                 .catch((err) => console.error("同步失敗", err));
         }
 
-        // 渲染分頁標籤
+        // 渲染分頁標籤（支援拖曳排序與雙擊修改名稱）
         window.renderTabs = function() {
             const container = document.getElementById('tabsContainer');
             if (!container) return;
@@ -232,81 +229,88 @@
             
             const tabs = Object.keys(window.db || {});
             if(tabs.length === 0) {
-                container.innerHTML = '<div style="color:var(--text-muted); font-size:14px; padding:10px 0;">💡 目前沒有分頁，請在上方輸入名稱並點擊「新增分頁」</div>';
+                container.innerHTML = '<div style="color:var(--text-muted); font-size:14px; padding:10px 0;">💡 目前沒有分頁，請使用下方批量匯入或建立新分頁</div>';
                 return;
             }
 
             tabs.forEach((tabName, index) => {
+                const btn = document.createElement('button');
+                btn.className = `tab-btn ${tabName === window.currentTab ? 'active' : ''}`;
+                btn.innerText = tabName;
+                
                 if (window.isAdminMode) {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = `tab-wrapper ${tabName === window.currentTab ? 'active' : ''}`;
+                    btn.draggable = true;
+                    btn.classList.add('draggable');
+                    btn.title = "🤝 按住拖曳排序 / 🖱️ 連點兩下修改名稱";
                     
-                    const leftBtn = document.createElement('button');
-                    leftBtn.className = 'tab-move-btn';
-                    leftBtn.innerText = '◀';
-                    leftBtn.title = '向左移動群組';
-                    leftBtn.onclick = (e) => {
+                    // 雙擊修改分頁名稱
+                    btn.ondblclick = function(e) {
                         e.stopPropagation();
-                        moveTabOrder(index, -1);
+                        const newName = prompt(`請輸入「${tabName}」的新分頁名稱：`, tabName);
+                        if (newName && newName.trim() !== "" && newName.trim() !== tabName) {
+                            const trimmedName = newName.trim();
+                            if (window.db[trimmedName]) {
+                                alert("該分頁名稱已存在！");
+                                return;
+                            }
+                            
+                            // 保持順序更換鍵值
+                            const newDb = {};
+                            Object.keys(window.db).forEach(key => {
+                                if (key === tabName) {
+                                    newDb[trimmedName] = window.db[tabName];
+                                } else {
+                                    newDb[key] = window.db[key];
+                                }
+                            });
+                            
+                            window.db = newDb;
+                            if (window.currentTab === tabName) {
+                                window.currentTab = trimmedName;
+                            }
+                            window.renderTabs();
+                            window.saveToStorage();
+                        }
                     };
-                    wrapper.appendChild(leftBtn);
-                    
-                    const btn = document.createElement('button');
-                    btn.className = 'tab-btn';
-                    btn.innerText = tabName;
-                    btn.onclick = function() {
-                        window.currentTab = tabName;
-                        window.renderTabs();
-                        window.renderCards();
-                    };
-                    wrapper.appendChild(btn);
-                    
-                    const rightBtn = document.createElement('button');
-                    rightBtn.className = 'tab-move-btn';
-                    rightBtn.innerText = '▶';
-                    rightBtn.title = '向右移動群組';
-                    rightBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        moveTabOrder(index, 1);
-                    };
-                    wrapper.appendChild(rightBtn);
-                    
-                    container.appendChild(wrapper);
-                } else {
-                    const btn = document.createElement('button');
-                    btn.className = `tab-btn ${tabName === window.currentTab ? 'active' : ''}`;
-                    btn.innerText = tabName;
-                    btn.style.background = tabName === window.currentTab ? 'var(--primary)' : '#edf2f7';
-                    btn.style.color = tabName === window.currentTab ? 'white' : 'var(--text-muted)';
-                    btn.onclick = function() {
-                        window.currentTab = tabName;
-                        window.renderTabs();
-                        window.renderCards();
-                    };
-                    container.appendChild(btn);
-                }
-            });
-        }
 
-        // 移動分頁順序
-        function moveTabOrder(currentIndex, direction) {
-            const tabs = Object.keys(window.db || {});
-            const targetIndex = currentIndex + direction;
-            
-            if (targetIndex < 0 || targetIndex >= tabs.length) return;
-            
-            const tempTabs = [...tabs];
-            const movedTab = tempTabs.splice(currentIndex, 1)[0];
-            tempTabs.splice(targetIndex, 0, movedTab);
-            
-            const newDb = {};
-            tempTabs.forEach(key => {
-                newDb[key] = window.db[key];
+                    // 分頁拖曳事件
+                    btn.addEventListener('dragstart', (e) => {
+                        tabDragSrcIndex = index;
+                    });
+                    btn.addEventListener('dragover', (e) => e.preventDefault());
+                    btn.addEventListener('dragenter', () => btn.classList.add('drag-over'));
+                    btn.addEventListener('dragleave', () => btn.classList.remove('drag-over'));
+                    btn.addEventListener('drop', (e) => {
+                        e.stopPropagation();
+                        if (tabDragSrcIndex !== null && tabDragSrcIndex !== index) {
+                            const tempTabs = Object.keys(window.db);
+                            const movedTabKey = tempTabs.splice(tabDragSrcIndex, 1)[0];
+                            tempTabs.splice(index, 0, movedTabKey);
+                            
+                            const newDb = {};
+                            tempTabs.forEach(key => {
+                                newDb[key] = window.db[key];
+                            });
+                            
+                            window.db = newDb;
+                            window.renderTabs();
+                            window.saveToStorage();
+                        }
+                        tabDragSrcIndex = null;
+                    });
+                    btn.addEventListener('dragend', () => {
+                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('drag-over'));
+                    });
+
+                }
+
+                btn.onclick = function() {
+                    window.currentTab = tabName;
+                    window.renderTabs();
+                    window.renderCards();
+                };
+                container.appendChild(btn);
             });
-            
-            window.db = newDb;
-            window.renderTabs();
-            window.saveToStorage();
         }
 
         window.renderCards = function() {
@@ -379,7 +383,7 @@
                 const actions = document.createElement('div');
                 actions.className = 'card-actions';
 
-                // 如果是管理員模式，保留底部容器擺放「刪除」按鈕
+                // 管理員模式擺放「刪除」按鈕
                 if (window.isAdminMode) {
                     const delBtn = document.createElement('button');
                     delBtn.className = 'btn btn-danger';
@@ -388,9 +392,6 @@
                     delBtn.innerText = '刪除';
                     delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); window.deleteVideo(index); };
                     actions.appendChild(delBtn);
-                }
-
-                if (window.isAdminMode) {
                     info.appendChild(actions);
                 }
                 
@@ -427,9 +428,8 @@
             }
         }
 
-        // 升級優化版：支援單空格、多空格、Tab 的智能解析匯入函數
+        // 超級智能解析：支援一邊新增分頁一邊匯入影片
         window.importVideos = function() {
-            if (!window.currentTab) return alert('請先建立或選擇分頁群組！');
             const textarea = document.getElementById('rawInput');
             if (!textarea) return;
             const content = textarea.value.trim();
@@ -437,12 +437,33 @@
 
             const lines = content.split('\n');
             let count = 0;
+            let activeImportTab = window.currentTab; // 預設使用當前選取的分頁
 
             lines.forEach(line => {
                 line = line.trim();
                 if (!line) return;
 
-                // 尋找最後一個空格（不論是 Tab 還是普通空格）
+                // 檢查是否為自訂群組定義行，如 [多倫多景點] 或 [Toronto]
+                if (line.startsWith('[') && line.endsWith(']')) {
+                    const targetTabName = line.substring(1, line.length - 1).trim();
+                    if (targetTabName) {
+                        if (!window.db[targetTabName]) {
+                            window.db[targetTabName] = []; // 如果群組不存在就自動創建
+                        }
+                        activeImportTab = targetTabName; // 將接下來的影片歸入此群組
+                        if (!window.currentTab) window.currentTab = targetTabName; 
+                    }
+                    return; // 跳過本行處理下一行
+                }
+
+                // 如果還沒有任何分頁群組，預設臨時建一個
+                if (!activeImportTab) {
+                    activeImportTab = "未分類影片";
+                    if (!window.db[activeImportTab]) window.db[activeImportTab] = [];
+                    window.currentTab = activeImportTab;
+                }
+
+                // 尋找最後一個空格切分標題和網址
                 const lastSpaceIndex = line.lastIndexOf(' ');
                 const lastTabIndex = line.lastIndexOf('\t');
                 const splitIndex = Math.max(lastSpaceIndex, lastTabIndex);
@@ -452,20 +473,21 @@
                     const url = line.substring(splitIndex + 1).trim();
 
                     if (url.startsWith('http') && title) {
-                        if(!window.db[window.currentTab]) window.db[window.currentTab] = [];
-                        window.db[window.currentTab].push({ title, url });
+                        if (!window.db[activeImportTab]) window.db[activeImportTab] = [];
+                        window.db[activeImportTab].push({ title, url });
                         count++;
                     }
                 }
             });
 
             if (count > 0) {
+                window.renderTabs();
                 window.renderCards();
                 window.saveToStorage();
                 textarea.value = '';
-                alert(`成功匯入 ${count} 部影片！`);
+                alert(`成功智能解析並匯入 ${count} 部影片！`);
             } else {
-                alert('格式無法辨識，請確保標題與網址之間有空格。');
+                alert('格式無法辨識！請確保標題與網址之間有空格。\n如果要同時建立分頁，請用中括號，例如：[新分頁]');
             }
         }
 
