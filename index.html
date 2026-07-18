@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TankShow 影片清單</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h1 {
+            color: #ff0000;
+            margin-top: 0;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+        textarea:focus {
+            border-color: #ff0000;
+            outline: none;
+        }
+        button {
+            background-color: #ff0000;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #cc0000;
+        }
+        .admin-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #fff5f5;
+            border: 1px solid #ffe3e3;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 14px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background-color: #f1f1f1;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #fdfdfd;
+        }
+        .btn-view {
+            display: inline-block;
+            background: #f1f1f1;
+            color: #333;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        .btn-view:hover {
+            background: #ff0000;
+            color: white;
+        }
+        .hidden {
+            display: none !important;
+        }
+        /* 右下角管理員登入按鈕 */
+        .admin-login-trigger {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            font-size: 12px;
+            color: #ccc;
+            cursor: pointer;
+            user-select: none;
+        }
+        .admin-login-trigger:hover {
+            color: #ff0000;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎬 TankShow 影片清單</h1>
+    
+    <!-- 管理員輸入區（預設隱藏，只有輸入正確密碼先會現身） -->
+    <div class="admin-section hidden" id="adminArea">
+        <h3 style="margin-top: 0; color: #ff0000;">🔐 管理員後台</h3>
+        <p style="color:#666; font-size: 14px;">將你在 Console 複製出來的「片名 + 網址」直接貼在下面：</p>
+        <textarea id="rawInput" placeholder="TankShow 10 360	https://youtu.be/A5ruMMW0_vY&#10;TankShow 10	https://youtu.be/haUWQOHag5s"></textarea>
+        <button onclick="generateList()">發佈並更新清單</button>
+        <button onclick="lockAdmin()" style="background-color: #666; margin-left: 10px;">登出鎖定</button>
+    </div>
+
+    <!-- 顯示清單的表格 -->
+    <table id="videoTable">
+        <thead>
+            <tr>
+                <th>影片名稱</th>
+                <th>觀看連結</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- 初始或載入後的影片資料會放到這裡 -->
+        </tbody>
+    </table>
+</div>
+
+<!-- 隱藏的密碼觸發點 -->
+<div class="admin-login-trigger" onclick="checkPassword()">🔒 Admin</div>
+
+<script>
+    // 預設資料（如果 LocalStorage 冇嘢，就會用呢個作為底稿，免得一開網頁空冧冧）
+    const defaultData = [
+        { title: "TankShow 10 360", url: "https://youtu.be/A5ruMMW0_vY" },
+        { title: "TankShow 10", url: "https://youtu.be/haUWQOHag5s" },
+        { title: "TankShow 9 360", url: "https://youtu.be/m1p065SjmUg" },
+        { title: "TankShow 9", url: "https://youtu.be/-oKF0DePxew" },
+        { title: "TankShow 8 360", url: "https://youtu.be/hMtX_QGJsdQ" },
+        { title: "TankShow 8", url: "https://youtu.be/PDpnGTuuuHc" },
+        { title: "TankShow 7 360", url: "https://youtu.be/H_R3Ej3on_s" },
+        { title: "TankShow 7", url: "https://youtu.be/R3dhReuqg8A" },
+        { title: "TankShow 6 360", url: "https://youtu.be/FqfNRBBdkjk" },
+        { title: "TankShow 6", url: "https://youtu.be/kwpFhStc0VM" },
+        { title: "TankShow 5 360", url: "https://youtu.be/98Mk-vKoYFs" },
+        { title: "TankShow 5", url: "https://youtu.be/K34vMxiIXwQ" },
+        { title: "TankShow 4 360", url: "https://youtu.be/8-aBc7QEaxk" },
+        { title: "TankShow 4", url: "https://youtu.be/2QAxFwwRpQE" },
+        { title: "TankShow 3 360", url: "https://youtu.be/MSyskem5Yr0" },
+        { title: "TankShow 3", url: "https://youtu.be/ddE6x26SGk4" },
+        { title: "TankShow 2 360", url: "https://youtu.be/nkJ-YXQHnnY" },
+        { title: "TankShow 2", url: "https://youtu.be/o89vUGDvOcY" },
+        { title: "TankShow 1 360", url: "https://youtu.be/7pF0yDVWpuw" },
+        { title: "TankShow 1", url: "https://youtu.be/1rubymeLgpA" },
+        { title: "TankShow 8", url: "https://youtu.be/JcqKCRhl_KI" }
+    ];
+
+    window.onload = function() {
+        const savedData = localStorage.getItem('tankshow_videos');
+        if (savedData) {
+            renderTable(JSON.parse(savedData));
+        } else {
+            // 如果第一次入網頁未儲存過任何嘢，先顯示你上面俾我個21條List
+            renderTable(defaultData);
+        }
+    };
+
+    // 驗證密碼
+    function checkPassword() {
+        const password = prompt("請輸入管理員密碼以解鎖後台：");
+        if (password === "3005") {
+            document.getElementById('adminArea').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (password !== null) {
+            alert("密碼錯誤！無法解鎖。");
+        }
+    }
+
+    // 重新鎖定管理員區
+    function lockAdmin() {
+        document.getElementById('adminArea').classList.add('hidden');
+        document.getElementById('rawInput').value = '';
+    }
+
+    // 解析貼上的文字並儲存
+    function generateList() {
+        const input = document.getElementById('rawInput').value.trim();
+        if (!input) {
+            alert('請先貼上影片資料！');
+            return;
+        }
+
+        const lines = input.split('\n');
+        const videoList = [];
+
+        lines.forEach(line => {
+            const parts = line.split(/\t| {2,}/); 
+            if (parts.length >= 2) {
+                const title = parts[0].trim();
+                const url = parts[parts.length - 1].trim(); 
+                if (url.startsWith('http')) {
+                    videoList.push({ title, url });
+                }
+            }
+        });
+
+        if (videoList.length > 0) {
+            // 儲存至本地瀏覽器
+            localStorage.setItem('tankshow_videos', JSON.stringify(videoList));
+            renderTable(videoList);
+            alert('清單更新成功！');
+            lockAdmin(); // 自動收埋個後台
+        } else {
+            alert('未能解析資料，請確保格式正確（片名與網址之間有 Tab 或多個空格）。');
+        }
+    }
+
+    // 渲染表格
+    function renderTable(data) {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        data.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${item.title}</strong></td>
+                <td><a class="btn-view" href="${item.url}" target="_blank">▶ 開啟影片</a></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+</script>
+
+</body>
+</html>
