@@ -85,7 +85,7 @@
             font-family: monospace;
             margin-bottom: 10px;
         }
-        input[type="text"], select {
+        input[type="text"] {
             padding: 8px 12px;
             border: 2px solid #ddd;
             border-radius: 6px;
@@ -142,12 +142,22 @@
             color: white;
         }
         
-        /* 排序與管理按鈕 */
-        .action-btns button {
-            padding: 4px 8px;
-            font-size: 12px;
-            margin-right: 3px;
-            margin-bottom: 0;
+        /* 拖放排序樣式 */
+        tr.draggable {
+            cursor: move;
+        }
+        tr.draggable:active {
+            background-color: #fff1f1;
+        }
+        tr.drag-over {
+            border-top: 3px solid #ff0000;
+        }
+        .drag-handle {
+            color: #aaa;
+            margin-right: 8px;
+            cursor: move;
+            font-weight: bold;
+            user-select: none;
         }
 
         .hidden { display: none !important; }
@@ -172,27 +182,30 @@
     <!-- 頂部 Tabs 切換區 -->
     <div class="tabs-container" id="tabsContainer"></div>
     
-    <!-- 管理員後台 (密碼 3005 解鎖) -->
+    <!-- 管理員後台 -->
     <div class="admin-section hidden" id="adminArea">
         <h3 style="margin-top: 0; color: #ff0000; display:flex; justify-content:space-between;">
             <span>🔐 管理員後台</span>
             <button onclick="lockAdmin()" class="btn-secondary" style="margin:0;">隱藏後台</button>
         </h3>
         
-        <!-- 1. 管理 Tab -->
+        <!-- 1. 管理 Tab 與 順序操作 -->
         <div class="admin-block">
-            <h4>1. 分頁（Tab）管理</h4>
-            <input type="text" id="newTabName" placeholder="新分頁名稱 (例如: Zoo)">
-            <button onclick="addTab()">新增分頁</button>
-            <div style="margin-top: 10px; color: #666; font-size: 13px;">
-                危險操作：<button onclick="removeCurrentTab()" class="btn-danger" style="padding: 5px 10px; font-size: 12px;">刪除當前所選分頁</button> (會連同裡面所有影片一起刪除)
+            <h4>1. 分頁（Tab）與 影片順序管理</h4>
+            <div style="margin-bottom: 15px;">
+                <input type="text" id="newTabName" placeholder="新分頁名稱 (例如: Zoo)">
+                <button onclick="addTab()">新增分頁</button>
+            </div>
+            <div style="border-top: 1px solid #f1f1f1; padding-top: 10px;">
+                <strong style="font-size: 14px; color: #333;">當前分頁動作：</strong>
+                <button onclick="flipOrder()" style="background-color: #28a745; margin-right: 10px;">🔄 一鍵倒序 (Flip 1,2,3 → 3,2,1)</button>
+                <button onclick="removeCurrentTab()" class="btn-danger">🗑️ 刪除整個分頁</button>
             </div>
         </div>
 
         <!-- 2. 批量匯入影片 -->
         <div class="admin-block">
             <h4>2. 批量匯入影片 (自動解析)</h4>
-            <p style="color:#666; font-size: 13px; margin: 0 0 10px 0;">將你從 Console 撈出來的「片名 + 網址」貼在下面，會直接加入到目前選中的分頁：</p>
             <textarea id="rawInput" placeholder="TankShow 10 360	https://youtu.be/A5ruMMW0_vY"></textarea>
             <button onclick="importVideos()">解析並加進當前分頁</button>
         </div>
@@ -204,7 +217,7 @@
             <tr>
                 <th>影片名稱</th>
                 <th style="width: 120px;">觀看</th>
-                <th class="admin-ctrl hidden" style="width: 180px;">管理排序/刪除</th>
+                <th class="admin-ctrl hidden" style="width: 100px;">管理</th>
             </tr>
         </thead>
         <tbody id="tableBody"></tbody>
@@ -214,7 +227,6 @@
 <div class="admin-login-trigger" onclick="checkPassword()">🔒 Admin</div>
 
 <script>
-    // 預設初始數據結構 (包含多個群組)
     const defaultData = {
         "TankShow": [
             { title: "TankShow 10 360", url: "https://youtu.be/A5ruMMW0_vY" },
@@ -248,6 +260,7 @@
     let db = {}; 
     let currentTab = "";
     let isAdminMode = false;
+    let dragSrcIndex = null; // 紀錄被拖拽影片的 index
 
     window.onload = function() {
         const savedData = localStorage.getItem('multi_tab_videos');
@@ -256,20 +269,15 @@
         } else {
             db = defaultData;
         }
-        
-        // 確保至少有一個 Tab
         const tabs = Object.keys(db);
         currentTab = tabs.length > 0 ? tabs[0] : "";
-        
         renderTabs();
         renderTable();
     };
 
-    // 渲染所有 Tabs 按鈕
     function renderTabs() {
         const container = document.getElementById('tabsContainer');
         container.innerHTML = '';
-        
         Object.keys(db).forEach(tabName => {
             const btn = document.createElement('button');
             btn.className = `tab-btn ${tabName === currentTab ? 'active' : ''}`;
@@ -283,7 +291,6 @@
         });
     }
 
-    // 渲染當前 Tab 內的影片表格
     function renderTable() {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
@@ -296,9 +303,26 @@
         db[currentTab].forEach((item, index) => {
             const tr = document.createElement('tr');
             
-            // 影片名稱
+            // 如果是 Admin 模式，賦予拖拽屬性與事件
+            if (isAdminMode) {
+                tr.draggable = true;
+                tr.className = "draggable";
+                
+                // Drag & Drop 事件監聽
+                tr.addEventListener('dragstart', (e) => handleDragStart(e, index));
+                tr.addEventListener('dragover', handleDragOver);
+                tr.addEventListener('dragenter', (e) => tr.classList.add('drag-over'));
+                tr.addEventListener('dragleave', (e) => tr.classList.remove('drag-over'));
+                tr.addEventListener('drop', (e) => handleDrop(e, index));
+                tr.addEventListener('dragend', () => {
+                    document.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+                });
+            }
+            
+            // 影片名稱 (Admin 模式加個 ☰ 符號提示可拖動)
             const tdTitle = document.createElement('td');
-            tdTitle.innerHTML = `<strong>${item.title}</strong>`;
+            const handle = isAdminMode ? `<span class="drag-handle">☰</span>` : '';
+            tdTitle.innerHTML = `${handle}<strong>${item.title}</strong>`;
             tr.appendChild(tdTitle);
 
             // 觀看連結
@@ -306,40 +330,77 @@
             tdView.innerHTML = `<a class="btn-view" href="${item.url}" target="_blank">▶ 開啟影片</a>`;
             tr.appendChild(tdView);
 
-            // 管理控制項（只有 Admin 模式會顯示）
+            // 管理（刪除掣）
             const tdCtrl = document.createElement('td');
-            tdCtrl.className = `admin-ctrl action-btns ${isAdminMode ? '' : 'hidden'}`;
-            tdCtrl.innerHTML = `
-                <button onclick="moveVideo(${index}, -1)" class="btn-secondary" ${index === 0 ? 'disabled' : ''}>▲ 上移</button>
-                <button onclick="moveVideo(${index}, 1)" class="btn-secondary" ${index === db[currentTab].length - 1 ? 'disabled' : ''}>▼ 下移</button>
-                <button onclick="deleteVideo(${index})" class="btn-danger">刪除</button>
-            `;
+            tdCtrl.className = `admin-ctrl ${isAdminMode ? '' : 'hidden'}`;
+            tdCtrl.innerHTML = `<button onclick="deleteVideo(${index})" class="btn-danger" style="padding: 5px 10px; font-size: 12px; margin:0;">刪除</button>`;
             tr.appendChild(tdCtrl);
 
             tbody.appendChild(tr);
         });
     }
 
-    // 驗證管理員密碼
-    function checkPassword() {
-        if (isAdminMode) {
-            alert("你已經處於管理員模式。");
-            return;
+    /* --- Drag and Drop 核心邏輯 --- */
+    function handleDragStart(e, index) {
+        dragSrcIndex = index;
+        e.dataTransfer.effectAllowed = 'move';
+        // 為了相容部分瀏覽器
+        e.dataTransfer.setData('text/plain', index);
+    }
+
+    function handleDragOver(e) {
+        if (e.preventDefault) {
+            e.preventDefault(); 
         }
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+
+    function handleDrop(e, targetIndex) {
+        if (e.stopPropagation) {
+            e.stopPropagation(); 
+        }
+        
+        // 如果拖動到自己身上，就不作處理
+        if (dragSrcIndex !== null && dragSrcIndex !== targetIndex) {
+            // 從原本位置提取，並插入到新位置
+            const targetArray = db[currentTab];
+            const movedItem = targetArray.splice(dragSrcIndex, 1)[0];
+            targetArray.splice(targetIndex, 0, movedItem);
+            
+            saveToStorage();
+            renderTable();
+        }
+        dragSrcIndex = null;
+    }
+
+    /* --- 2. 翻轉順序 (Flip Order) --- */
+    function flipOrder() {
+        if (!currentTab || !db[currentTab] || db[currentTab].length <= 1) return;
+        
+        // 直接將 Array 反轉
+        db[currentTab].reverse();
+        
+        saveToStorage();
+        renderTable();
+        alert(`已成功翻轉「${currentTab}」內所有影片的排列順序！`);
+    }
+
+    /* --- 後台權限與其餘基礎功能 --- */
+    function checkPassword() {
+        if (isAdminMode) return alert("你已經處於管理員模式。");
         const password = prompt("請輸入管理員密碼：");
         if (password === "3005") {
             isAdminMode = true;
             document.getElementById('adminArea').classList.remove('hidden');
-            // 顯示表格中的管理 Column
             document.querySelectorAll('.admin-ctrl').forEach(el => el.classList.remove('hidden'));
-            renderTable(); // 重新渲染以套用按鈕狀態
+            renderTable();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (password !== null) {
             alert("密碼錯誤！");
         }
     }
 
-    // 隱藏後台
     function lockAdmin() {
         isAdminMode = false;
         document.getElementById('adminArea').classList.add('hidden');
@@ -347,30 +408,25 @@
         renderTable();
     }
 
-    // 儲存數據到 LocalStorage
     function saveToStorage() {
         localStorage.setItem('multi_tab_videos', JSON.stringify(db));
     }
 
-    /* --- 後台功能：Tab 管理 --- */
-    
     function addTab() {
         const name = document.getElementById('newTabName').value.trim();
         if (!name) return alert('請輸入分頁名稱！');
         if (db[name]) return alert('此分頁名稱已存在！');
-        
         db[name] = [];
-        currentTab = name; // 自動切換到新分頁
+        currentTab = name;
         document.getElementById('newTabName').value = '';
         saveToStorage();
         renderTabs();
         renderTable();
-        alert(`已成功新增分頁「${name}」`);
     }
 
     function removeCurrentTab() {
         if (!currentTab) return;
-        if (confirm(`確定要刪除整個「${currentTab}」分頁嗎？裡面所有影片將會永久消失！`)) {
+        if (confirm(`確定要刪除整個「${currentTab}」分頁嗎？`)) {
             delete db[currentTab];
             const remainingTabs = Object.keys(db);
             currentTab = remainingTabs.length > 0 ? remainingTabs[0] : "";
@@ -380,9 +436,6 @@
         }
     }
 
-    /* --- 後台功能：影片管理與排序 --- */
-
-    // 批量解析匯入
     function importVideos() {
         if (!currentTab) return alert('請先選擇或創建一個分頁！');
         const input = document.getElementById('rawInput').value.trim();
@@ -407,28 +460,12 @@
             saveToStorage();
             renderTable();
             document.getElementById('rawInput').value = '';
-            alert(`成功在「${currentTab}」分頁中追加了 ${count} 條影片！`);
+            alert(`成功追加了 ${count} 條影片！`);
         } else {
             alert('未能解析資料，請檢查格式。');
         }
     }
 
-    // 變更影片順序 (direction: -1 代表上移, 1 代表下移)
-    function moveVideo(index, direction) {
-        const targetIndex = index + direction;
-        // 邊界安全檢查
-        if (targetIndex < 0 || targetIndex >= db[currentTab].length) return;
-        
-        // 元素互換位置 (Swap)
-        const temp = db[currentTab][index];
-        db[currentTab][index] = db[currentTab][targetIndex];
-        db[currentTab][targetIndex] = temp;
-        
-        saveToStorage();
-        renderTable();
-    }
-
-    // 刪除單一影片
     function deleteVideo(index) {
         if (confirm(`確定要刪除影片「${db[currentTab][index].title}」嗎？`)) {
             db[currentTab].splice(index, 1);
