@@ -1,6 +1,6 @@
 {
-  "name": "精選影片庫",
-  "short_name": "影片庫",
+  "name": "加拿大影片庫",
+  "short_name": "加拿大影片庫",
   "description": "精選影片庫與收藏管理系統",
   "start_url": "./index.html",
   "display": "standalone",
