@@ -171,6 +171,7 @@
         }
 
         /* 頂部導航欄 */
+/* 頂部導航欄 - 修改為固定置頂 */
         header {
             display: flex;
             align-items: center;
@@ -181,7 +182,27 @@
             padding-bottom: 16px;
             flex-shrink: 0;
             min-height: 50px;
+
+            /* 📌 新增：固定置頂核心代碼 */
+            position: sticky;
+            top: 0;
+            background-color: var(--bg); /* 確保背後有顏色，滾動時內容才不會穿透 */
+            z-index: 50;                 /* 確保層級高於影片卡片 */
+            padding-top: 4px;            /* 留出微調空間 */
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
+        
+        /* 橫向子分頁列 - 如果你也想讓它一起固定，可以取消註釋下面這段 */
+        
+        .main-sub-tabs {
+            position: sticky;
+            top: 66px; 
+            background-color: var(--bg);
+            z-index: 49;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+       
         
         .header-left {
             display: flex;
