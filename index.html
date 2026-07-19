@@ -397,6 +397,9 @@
         window.currentSubTab = "normal"; 
         window.isAdminMode = false;
 
+        // 追蹤當前資料庫是否為首次載入（避免在初次獲取 Firebase 資料時打亂排序）
+        let isFirstLoad = true;
+
         if (window.innerWidth <= 768) {
             document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById('sidebar').classList.add('folded');
@@ -452,14 +455,19 @@
         dbRef.on('value', (snapshot) => {
             try {
                 const data = snapshot.val();
+                
+                // 讀取 Firebase 資料，如果是初次載入且本來就有資料，就直接套用（維持當前排序）
                 window.db = (data && Object.keys(data).length > 0) ? data : defaultData;
+                
                 const tabs = Object.keys(window.db);
                 if (!window.currentTab || !window.db[window.currentTab]) {
                     window.currentTab = tabs.length > 0 ? tabs[0] : "";
                 }
+                
                 window.renderTabs();
                 window.renderSubTabs(); 
                 window.renderCards();
+                isFirstLoad = false;
             } catch (error) { console.error(error); }
         });
 
@@ -490,7 +498,6 @@
             }
         }
 
-        // ✂️ 已完全移除長按偵測邏輯（mousedown / touchstart / clearTimers）
         window.renderTabs = function() {
             const container = document.getElementById('tabsContainer');
             if (!container) return;
@@ -522,11 +529,9 @@
 
                 itemWrapper.appendChild(btn);
 
-                // 唯有管理員模式才載入編輯按鈕與拖曳排序
                 if (window.isAdminMode) {
                     itemWrapper.setAttribute('draggable', 'true');
 
-                    // 點擊 ✏️ 按鈕直接觸發重新命名
                     const renameBtn = document.createElement('button');
                     renameBtn.className = 'tab-rename-inline-btn';
                     renameBtn.innerHTML = '✏️';
@@ -537,7 +542,6 @@
                     };
                     itemWrapper.appendChild(renameBtn);
 
-                    // 拖曳排序事件
                     itemWrapper.addEventListener('dragstart', (e) => {
                         itemWrapper.classList.add('dragging');
                         e.dataTransfer.setData('text/plain', tabName);
@@ -589,6 +593,34 @@
                     return closest;
                 }
             }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        // 🆕 核心優化：重寫新增分頁邏輯，完美保留自定義排序並置頂
+        window.addTab = function() {
+            const input = document.getElementById('newTabName');
+            const name = input ? input.value.trim() : '';
+            if (!name || window.db[name]) return alert('名稱不正確或已存在');
+
+            // 建立一個新物件，將新分頁排喺最前（置頂）
+            const newDb = {};
+            newDb[name] = []; // 初始化空陣列
+
+            // 將舊有嘅所有分頁按原本嘅自定義順序全部推入新物件後面
+            Object.keys(window.db).forEach(key => {
+                newDb[key] = window.db[key];
+            });
+
+            // 覆寫全域變數並切換到新分頁
+            window.db = newDb;
+            window.currentTab = name;
+            window.currentSubTab = "normal";
+            
+            if (input) input.value = '';
+            
+            window.renderTabs();
+            window.renderSubTabs();
+            window.renderCards();
+            window.saveToStorage(); // 儲存置頂結構到 Firebase
         }
 
         window.renderSubTabs = function() {
@@ -675,20 +707,6 @@
                 card.appendChild(info);
                 wrapper.appendChild(card);
             });
-        }
-
-        window.addTab = function() {
-            const input = document.getElementById('newTabName');
-            const name = input ? input.value.trim() : '';
-            if (!name || window.db[name]) return alert('名稱不正確或已存在');
-            window.db[name] = [];
-            window.currentTab = name;
-            window.currentSubTab = "normal";
-            input.value = '';
-            window.renderTabs();
-            window.renderSubTabs();
-            window.renderCards();
-            window.saveToStorage();
         }
 
         window.removeCurrentTab = function() {
