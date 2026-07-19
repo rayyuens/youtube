@@ -187,14 +187,26 @@
         /* 影片卡片網格 */
         .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .video-card { background: var(--card-bg); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; flex-direction: column; }
-        .thumb-link { display: block; width: 100%; aspect-ratio: 16 / 9; text-decoration: none; position: relative; overflow: hidden; }
-        .thumb-wrapper { width: 100%; height: 100%; background: #e2e8f0; position: relative; }
-        .thumb-img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* 🎬 內嵌影片容器優化 */
+        .video-player-wrapper { 
+            width: 100%; 
+            aspect-ratio: 16 / 9; 
+            background: #000000; 
+            position: relative;
+        }
+        .video-player-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
         .video-info { padding: 14px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between; gap: 10px; }
         .video-title { font-size: 14px; font-weight: 600; color: var(--text-main); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 38px; }
         .status-msg { text-align: center; padding: 50px 20px; color: var(--text-muted); font-size: 14px; grid-column: 1 / -1; }
 
-        /* 📱 手機版遮罩層（用於點擊影片區收摺選單） */
+        /* 手機版遮罩層 */
         .sidebar-overlay {
             display: none;
             position: fixed;
@@ -202,17 +214,16 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.15); /* 輕微暗化背景，增加層次感 */
+            background: rgba(0, 0, 0, 0.15); 
             backdrop-filter: blur(2px);
-            z-index: 90; /* 剛好喺側邊欄 (100) 下面 */
+            z-index: 90; 
             transition: opacity 0.3s ease;
         }
 
-        /* 📱 流動端響應式 UI */
+        /* 流動端響應式 UI */
         @media (max-width: 768px) {
             body { position: relative; }
             
-            /* 側邊欄抽屜化 */
             aside {
                 position: fixed;
                 left: 0;
@@ -230,27 +241,16 @@
                 box-shadow: none;
             }
 
-            /* 當選單打開時，顯示遮罩層 */
-            body:not(.sidebar-closed) .sidebar-overlay {
-                display: block;
-            }
+            body:not(.sidebar-closed) .sidebar-overlay { display: block; }
+            body.sidebar-closed .sidebar-overlay { display: none; }
             
-            body.sidebar-closed .sidebar-overlay {
-                display: none;
-            }
-            
-            main {
-                padding: 16px;
-                padding-top: 12px;
-                width: 100%;
-            }
-
+            main { padding: 16px; padding-top: 12px; width: 100%; }
             header h1 { font-size: 15px; }
             .video-grid { grid-template-columns: 1fr; gap: 14px; }
         }
     </style>
 </head>
-<body class="sidebar-closed"> <!-- 預設手機端狀態為已收摺 -->
+<body class="sidebar-closed">
 
     <!-- 手機端專用點擊收摺遮罩 -->
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebarOnMobile()"></div>
@@ -333,7 +333,6 @@
         window.currentTab = "";
         window.isAdminMode = false;
 
-        // 🚀 初始化判斷：手機端預設收摺側邊欄
         if (window.innerWidth <= 768) {
             document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById('sidebar').classList.add('folded');
@@ -344,7 +343,6 @@
             document.body.className = "sidebar-open";
         }
 
-        // 🔄 切換側邊欄狀態
         window.toggleSidebar = function() {
             const sidebar = document.getElementById('sidebar');
             const toggleExpandBtn = document.getElementById('toggleExpandBtn');
@@ -360,7 +358,6 @@
             }
         }
 
-        // 📱 手機版點擊影片部分（遮罩）時觸發的收摺函數
         window.closeSidebarOnMobile = function() {
             if (window.innerWidth <= 768) {
                 const sidebar = document.getElementById('sidebar');
@@ -372,14 +369,22 @@
             }
         }
 
-        function getYoutubeThumb(url) {
-            if (!url) return 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&q=80';
+        // 🧠 核心：將普通 YouTube 網址轉換成內嵌 Embed 專用網址
+        function convertToEmbedUrl(url) {
+            if (!url) return '';
             let videoId = null;
             try {
-                if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1].split(/[?#]/)[0];
-                else if (url.includes('v=')) videoId = url.split('v=')[1].split('&')[0].split(/[?#]/)[0];
+                if (url.includes('youtu.be/')) {
+                    videoId = url.split('youtu.be/')[1].split(/[?#]/)[0];
+                } else if (url.includes('v=')) {
+                    videoId = url.split('v=')[1].split('&')[0].split(/[?#]/)[0];
+                } else if (url.includes('embed/')) {
+                    return url; // 已經係 embed 格式就直接回傳
+                }
             } catch(e) { console.error(e); }
-            return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&q=80';
+            
+            // 回傳帶有 iOS 友善設定的內嵌播放網址
+            return videoId ? `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0` : url;
         }
 
         dbRef.on('value', (snapshot) => {
@@ -417,7 +422,6 @@
                     window.currentTab = tabName;
                     window.renderTabs();
                     window.renderCards();
-                    // 點選分類後自動收摺選單
                     window.closeSidebarOnMobile();
                 };
                 container.appendChild(btn);
@@ -438,21 +442,17 @@
                 const card = document.createElement('div');
                 card.className = 'video-card';
 
-                const thumbLink = document.createElement('a');
-                thumbLink.className = 'thumb-link';
-                thumbLink.href = item.url || '#';
-                thumbLink.target = '_blank';
-
-                const thumbWrapper = document.createElement('div');
-                thumbWrapper.className = 'thumb-wrapper';
-                const img = document.createElement('img');
-                img.className = 'thumb-img';
-                img.src = getYoutubeThumb(item.url);
-                img.loading = 'lazy';
+                // 🎬 核心改動：直接使用 iframe 替代原本的 <a> 圖片跳轉連結
+                const playerWrapper = document.createElement('div');
+                playerWrapper.className = 'video-player-wrapper';
                 
-                thumbWrapper.appendChild(img);
-                thumbLink.appendChild(thumbWrapper);
-                card.appendChild(thumbLink);
+                const iframe = document.createElement('iframe');
+                iframe.src = convertToEmbedUrl(item.url);
+                iframe.setAttribute('allowfullscreen', 'true');
+                iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                
+                playerWrapper.appendChild(iframe);
+                card.appendChild(playerWrapper);
 
                 const info = document.createElement('div');
                 info.className = 'video-info';
