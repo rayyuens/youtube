@@ -9,70 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-  /* ==========================================================================
-           📌 修正後的核心排佈樣式 (完全替換原本的 body, main, header, main-sub-tabs)
-           ========================================================================== */
-
-        body { 
-            background-color: var(--bg); 
-            color: var(--text-main); 
-            height: 100vh;           /* 固定視窗高度為剛好一個螢幕高 */
-            overflow: hidden;         /* 徹底關閉最外層的混亂滾動，交由內部處理 */
-            display: flex; 
-            transition: background-color 0.3s ease, color 0.3s ease; 
-        }
-        
-        .hidden { display: none !important; }
-
-        /* 左側邊欄佈局 */
-        aside {
-            width: var(--sidebar-width);
-            background: var(--sidebar-bg);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
-            flex-shrink: 0;
-            height: 100vh;
-            position: relative;       /* 既然外層不滾動，這裡改為 relative 即可 */
-            z-index: 100;
-        }
-
-        /* ...（中間的 .sidebar-header、#tabsContainer 等樣式保持原樣不變）... */
-
-        /* 右側主內容區 - 讓這裡成為唯一真正負責垂直滾動的容器 */
-        main {
-            flex-grow: 1;
-            padding: 24px;
-            overflow-y: auto;         /* 📌 允許內容在這裡垂直滾動 */
-            overflow-x: hidden;       /* 📌 原本寫在 body 的橫向裁剪移到這裡，不破壞 sticky 鏈 */
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            min-width: 0;
-            height: 100vh;            /* 確保高度撐滿 */
-        }
-
-        /* 頂部導航欄 - 現在它能完美黏在 main 的最頂部了 */
-        header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding-bottom: 16px;
-            margin-bottom: 16px;
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-            min-height: 50px;
-
-            /* 📌 核心置頂代碼 */
-            position: sticky;
-            top: 0;
-            background-color: var(--bg); /* 必須設定與背景相同的顏色，否則滾動時卡片會穿透露出來 */
-            z-index: 50;                 /* 層級調高，壓在影片卡片上方 */
-            padding-top: 4px;            /* 微調邊距 */
-            margin-top: -4px;            /* 消除頂部縫隙，確保完全黏緊 */
-            transitio<style>
+    <style>
         :root {
             --primary: #4f46e5;
             --primary-hover: #4338ca;
@@ -110,7 +47,6 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
         
-        /* 📌 修正：鎖定視窗高度，交給內部容器負責滾動，移除干擾 sticky 的屬性 */
         body { 
             background-color: var(--bg); 
             color: var(--text-main); 
@@ -165,11 +101,9 @@
             -webkit-overflow-scrolling: touch;
         }
         
-        /* 隱藏滾動條 */
         #tabsContainer::-webkit-scrollbar { display: none; }
         #tabsContainer { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* 分頁按鈕外層 Wrapper */
         .tab-item-wrapper {
             display: flex;
             align-items: center;
@@ -179,7 +113,6 @@
             transition: all 0.2s ease;
         }
 
-        /* 直排主分頁按鈕 */
         .tab-btn {
             flex-grow: 1;
             padding: 10px 14px; 
@@ -207,12 +140,10 @@
         .tab-btn.active { background: #eef2ff; color: var(--primary); border-left: 4px solid var(--primary); border-radius: 4px var(--radius) var(--radius) 4px; }
         [data-theme="dark"] .tab-btn.active { background: #312e81; color: #818cf8; border-left-color: #818cf8; }
         
-        /* 管理員模式下的拖曳外觀提示 */
         body.admin-mode-active .tab-btn { cursor: grab; }
         body.admin-mode-active .tab-btn:active { cursor: grabbing; }
         .tab-item-wrapper.dragging { opacity: 0.4; background: #e2e8f0; }
 
-        /* 管理員專用小編輯按鈕 */
         .tab-rename-inline-btn {
             background: transparent;
             border: none;
@@ -229,7 +160,7 @@
         .tab-rename-inline-btn:hover { background: #cbd5e1; color: var(--text-main); }
         [data-theme="dark"] .tab-rename-inline-btn:hover { background: #475569; }
 
-        /* 📌 修正：右側主內容區 - 讓它成為唯一真正垂直滾動的容器 */
+        /* 右側主內容區 */
         main {
             flex-grow: 1;
             padding: 24px;
@@ -242,7 +173,7 @@
             min-width: 0;
         }
 
-        /* 📌 修正：頂部導航欄 - 成功啟用固定置頂機制 */
+        /* 頂部導航欄 */
         header {
             display: flex;
             align-items: center;
@@ -253,7 +184,6 @@
             border-bottom: 1px solid var(--border);
             flex-shrink: 0;
             min-height: 50px;
-
             position: sticky;
             top: 0;
             background-color: var(--bg);
@@ -286,13 +216,12 @@
             gap: 8px;
         }
 
-        /* 📌 修正：主頁面橫向子分頁列 - 也同步固定在 header 正下方 */
+        /* 主頁面橫向子分頁列 */
         .main-sub-tabs {
             display: flex;
             gap: 6px;
             margin-bottom: 20px;
             flex-shrink: 0;
-
             position: sticky;
             top: 66px; 
             background-color: var(--bg);
@@ -315,9 +244,7 @@
         [data-theme="dark"] .sub-tab-btn { background: #334155; }
         [data-theme="dark"] .sub-tab-btn:hover { background: #475569; }
         .sub-tab-btn.active { background: var(--primary); color: white; }
-        [data-theme="dark"] .sub-tab-btn.active { background: var(--primary); color: white; }
 
-        /* 按鈕基本樣式 */
         .btn { 
             padding: 0 14px; 
             height: 38px;
@@ -341,7 +268,6 @@
         [data-theme="dark"] .btn:hover { background: #334155; border-color: #475569; }
         .btn-primary { background: var(--primary); color: white; border: none; }
         .btn-primary:hover { background: var(--primary-hover); }
-        .btn-toggle { padding: 0 10px; font-size: 14px; }
         .btn-danger { background: #fee2e2; color: var(--danger); border: none; }
         [data-theme="dark"] .btn-danger { background: #451a1a; color: #fca5a5; }
 
@@ -351,23 +277,22 @@
         .admin-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
         .admin-input-group { display: flex; gap: 8px; margin-bottom: 14px; }
         
-        input[type="text"], textarea { 
+        input[type="text"] { 
             width: 100%; 
             padding: 10px 12px; 
             border-radius: var(--radius); 
             border: 1px solid var(--border); 
             background: var(--card-bg); 
             color: var(--text-main);
-            font-size: 16px; 
+            font-size: 14px; 
             outline: none; 
             -webkit-appearance: none; 
         }
 
         /* 影片卡片網格 */
-        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding-bottom: 40px; }
         .video-card { background: var(--card-bg); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; flex-direction: column; transition: background-color 0.3s, border-color 0.3s; }
         
-        /* 🎬 內嵌影片與縮圖容器 */
         .video-player-wrapper { 
             width: 100%; 
             aspect-ratio: 16 / 9; 
@@ -376,23 +301,10 @@
             cursor: pointer;
             overflow: hidden;
         }
-        .video-player-wrapper iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            display: block;
-        }
+        .video-player-wrapper iframe { width: 100%; height: 100%; border: none; display: block; }
+        .video-thumbnail { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s ease; }
+        .video-player-wrapper:hover .video-thumbnail { transform: scale(1.03); }
         
-        .video-thumbnail {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            transition: transform 0.3s ease;
-        }
-        .video-player-wrapper:hover .video-thumbnail {
-            transform: scale(1.03);
-        }
         .play-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -400,9 +312,7 @@
             display: flex; align-items: center; justify-content: center;
             transition: background 0.2s ease;
         }
-        .video-player-wrapper:hover .play-overlay {
-            background: rgba(0, 0, 0, 0.4);
-        }
+        .video-player-wrapper:hover .play-overlay { background: rgba(0, 0, 0, 0.4); }
         .play-button-icon {
             width: 54px; height: 54px;
             background: rgba(239, 68, 68, 0.95);
@@ -419,33 +329,23 @@
             border-width: 9px 0 9px 14px;
             border-color: transparent transparent transparent #ffffff;
         }
-        .video-player-wrapper:hover .play-button-icon {
-            transform: scale(1.1);
-            background: rgb(220, 38, 38);
-        }
 
         .video-info { padding: 14px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between; gap: 10px; }
         .video-title { font-size: 14px; font-weight: 600; color: var(--text-main); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 38px; }
         .status-msg { text-align: center; padding: 50px 20px; color: var(--text-muted); font-size: 14px; grid-column: 1 / -1; }
 
-        /* 🦴 骨架屏（Skeleton Loading）動畫樣式 */
+        /* 🦴 骨架屏動畫 */
         .sk-card { pointer-events: none; }
         .sk-media {
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            background: var(--skeleton-bg);
-            background-image: var(--skeleton-shimmer);
-            background-size: 200% 100%;
+            width: 100%; aspect-ratio: 16 / 9; background: var(--skeleton-bg);
+            background-image: var(--skeleton-shimmer); background-size: 200% 100%;
             animation: shimmer 1.5s infinite linear;
         }
         .sk-info { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
         .sk-line {
-            height: 14px;
-            background: var(--skeleton-bg);
-            background-image: var(--skeleton-shimmer);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite linear;
-            border-radius: 4px;
+            height: 14px; background: var(--skeleton-bg);
+            background-image: var(--skeleton-shimmer); background-size: 200% 100%;
+            animation: shimmer 1.5s infinite linear; border-radius: 4px;
         }
         .sk-line.w-80 { width: 80%; }
         .sk-line.w-50 { width: 50%; }
@@ -459,38 +359,23 @@
         .sidebar-overlay {
             display: none;
             position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.15); 
-            backdrop-filter: blur(2px);
-            z-index: 90; 
-            transition: opacity 0.3s ease;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.15); backdrop-filter: blur(2px);
+            z-index: 90; transition: opacity 0.3s ease;
         }
 
         /* 流動端響應式 UI */
         @media (max-width: 768px) {
             body { position: relative; }
-            
             aside {
-                position: fixed;
-                left: 0; top: 0;
-                height: 100vh;
-                transform: translateX(0);
-                box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+                position: fixed; left: 0; top: 0; height: 100vh;
+                transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.15);
                 width: var(--sidebar-width);
             }
-            
-            aside.folded {
-                transform: translateX(-100%);
-                width: var(--sidebar-width);
-                border-right-color: transparent;
-                box-shadow: none;
-            }
-
+            aside.folded { transform: translateX(-100%); width: var(--sidebar-width); box-shadow: none; }
             body:not(.sidebar-closed) .sidebar-overlay { display: block; }
             body.sidebar-closed .sidebar-overlay { display: none; }
             
-            /* 📌 修正：手機版也完美契合固定滾動與頂部黏附 */
             main { padding: 16px; padding-top: 12px; width: 100%; height: 100vh; }
             header { top: 0; margin-top: -12px; padding-top: 12px; }
             .main-sub-tabs { top: 58px; }
@@ -498,6 +383,62 @@
             .video-grid { grid-template-columns: 1fr; gap: 14px; }
         }
     </style>
+</head>
+<body class="sidebar-closed">
+
+    <div class="sidebar-overlay" onclick="window.toggleSidebar()"></div>
+
+    <!-- 左側邊欄 -->
+    <aside id="sidebar" class="folded">
+        <div class="sidebar-header">
+            <h2>📁 影片分頁清單</h2>
+            <button class="btn" style="padding:0 8px; height:32px;" onclick="window.toggleSidebar()">✕</button>
+        </div>
+        <div id="tabsContainer"></div>
+    </aside>
+
+    <!-- 右側主內容區 -->
+    <main>
+        <!-- 頂部導航欄 -->
+        <header>
+            <div class="header-left">
+                <button id="toggleExpandBtn" class="btn" onclick="window.toggleSidebar()">☰ 選單</button>
+                <h1 id="mainTitle">精選影片庫</h1>
+            </div>
+            <div class="header-right">
+                <button id="themeToggleBtn" class="btn" onclick="window.toggleTheme()">🌙 夜間</button>
+                <button id="adminToggleBtn" class="btn" onclick="window.toggleAdminMode()">⚙️ 後台</button>
+            </div>
+        </header>
+
+        <!-- 管理員後台面板 -->
+        <div id="adminArea" class="hidden">
+            <h3>⚙️ 系統管理面板</h3>
+            <div class="admin-actions">
+                <button class="btn btn-primary" onclick="window.createNewTabAction()">➕ 新增主分頁</button>
+                <button id="toggleNumericOrderBtn" class="btn" onclick="window.toggleNumericSort()">🔢 數字排序：降序 (5→1)</button>
+                <button class="btn btn-danger" onclick="window.deleteCurrentTabAction()">🗑️ 刪除目前分頁</button>
+            </div>
+            <div class="admin-input-group">
+                <input type="text" id="newVideoTitle" placeholder="影片名稱">
+                <input type="text" id="newVideoUrl" placeholder="YouTube 網址 (支援短網址/完整連結)">
+                <button class="btn btn-primary" onclick="window.addVideoAction()">📌 新增至本頁</button>
+            </div>
+        </div>
+
+        <!-- 橫向子分頁列 -->
+        <div id="subTabsContainer" class="main-sub-tabs"></div>
+
+        <!-- 影片卡片網格 -->
+        <div id="videoGrid" class="video-grid">
+            <!-- 初始骨架屏預載外觀 -->
+            <div class="video-card sk-card"><div class="sk-media"></div><div class="sk-info"><div class="sk-line w-80"></div><div class="sk-line w-50"></div></div></div>
+            <div class="video-card sk-card"><div class="sk-media"></div><div class="sk-info"><div class="sk-line w-80"></div><div class="sk-line w-50"></div></div></div>
+            <div class="video-card sk-card"><div class="sk-media"></div><div class="sk-info"><div class="sk-line w-80"></div><div class="sk-line w-50"></div></div></div>
+        </div>
+    </main>
+
+    <script>
         // Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyBl7yqNoQQBZOt2v6aN_wre1if7cXGFOns",
@@ -528,10 +469,9 @@
 
         let lastLocalSaveTime = 0;
 
-        // 🌗 核心功能：夜間模式初始化與切換邏輯
+        // 🌗 夜間模式初始化與切換
         function initTheme() {
             const savedTheme = localStorage.getItem('theme');
-            // 如果有手動設定過就遵循設定，否則檢測系統偏好
             if (savedTheme) {
                 document.documentElement.setAttribute('data-theme', savedTheme);
                 updateThemeButton(savedTheme);
@@ -555,14 +495,9 @@
         function updateThemeButton(theme) {
             const btn = document.getElementById('themeToggleBtn');
             if (!btn) return;
-            if (theme === 'dark') {
-                btn.innerText = "☀️ 淺色";
-            } else {
-                btn.innerText = "🌙 夜間";
-            }
+            btn.innerText = theme === 'dark' ? "☀️ 淺色" : "🌙 夜間";
         }
 
-        // 監聽系統主題切換
         if (window.matchMedia) {
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
                 if (!localStorage.getItem('theme')) {
@@ -572,42 +507,34 @@
                 }
             });
         }
-        
-        // 啟動主題檢測
         initTheme();
 
-        if (window.innerWidth <= 768) {
-            document.addEventListener("DOMContentLoaded", () => {
+        // 側邊欄流動響應處理
+        document.addEventListener("DOMContentLoaded", () => {
+            if (window.innerWidth <= 768) {
                 document.getElementById('sidebar').classList.add('folded');
-                document.getElementById('toggleExpandBtn').classList.remove('hidden');
                 document.body.className = "sidebar-closed";
-            });
-        } else {
-            document.body.className = "sidebar-open";
-        }
+            } else {
+                document.getElementById('sidebar').classList.remove('folded');
+                document.body.className = "sidebar-open";
+            }
+            initDragAndDrop();
+        });
 
         window.toggleSidebar = function() {
             const sidebar = document.getElementById('sidebar');
-            const toggleExpandBtn = document.getElementById('toggleExpandBtn');
-            
             if (sidebar.classList.contains('folded')) {
                 sidebar.classList.remove('folded');
-                toggleExpandBtn.classList.add('hidden');
                 document.body.className = "sidebar-open";
             } else {
                 sidebar.classList.add('folded');
-                toggleExpandBtn.classList.remove('hidden');
                 document.body.className = "sidebar-closed";
             }
         }
 
         window.closeSidebarOnMobile = function() {
             if (window.innerWidth <= 768) {
-                const sidebar = document.getElementById('sidebar');
-                const toggleExpandBtn = document.getElementById('toggleExpandBtn');
-                
-                sidebar.classList.add('folded');
-                toggleExpandBtn.classList.remove('hidden');
+                document.getElementById('sidebar').classList.add('folded');
                 document.body.className = "sidebar-closed";
             }
         }
@@ -623,20 +550,17 @@
             const videoId = extractVideoId(url);
             if (!videoId) return url;
             let embedUrl = `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0`;
-            if (autoplay) {
-                embedUrl += '&autoplay=1';
-            }
+            if (autoplay) embedUrl += '&autoplay=1';
             return embedUrl;
         }
 
-        // 監聽 Firebase 資料庫狀態
+        // 監聽 Firebase 資料庫
         dbRef.on('value', (snapshot) => {
             const now = Date.now();
             if (now - lastLocalSaveTime < 1500) return; 
 
             try {
                 const data = snapshot.val() || {};
-                
                 if (data._tabOrder) {
                     window.customTabOrder = data._tabOrder;
                     delete data._tabOrder;
@@ -645,8 +569,8 @@
                 }
 
                 window.db = (Object.keys(data).length > 0) ? data : defaultData;
-                
                 const finalTabs = window.getSortedTabsList();
+                
                 if (!window.currentTab || !window.db[window.currentTab]) {
                     window.currentTab = finalTabs.length > 0 ? finalTabs[0] : "";
                 }
@@ -675,25 +599,70 @@
             });
         }
 
+        // 後台運作邏輯
+        window.toggleAdminMode = function() {
+            window.isAdminMode = !window.isAdminMode;
+            document.getElementById('adminArea').classList.toggle('hidden', !window.isAdminMode);
+            document.body.classList.toggle('admin-mode-active', window.isAdminMode);
+            window.renderTabs();
+            window.renderCards();
+        }
+
+        window.createNewTabAction = function() {
+            const name = prompt("請輸入全新主分頁名稱：");
+            if (name && name.trim()) {
+                const cleanName = name.trim();
+                if (window.db[cleanName]) return alert("該分頁已存在！");
+                window.db[cleanName] = [ { title: "範例影片", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" } ];
+                window.customTabOrder.push(cleanName);
+                window.currentTab = cleanName;
+                window.saveToStorage();
+                window.renderTabs();
+                window.renderCards();
+            }
+        }
+
+        window.deleteCurrentTabAction = function() {
+            if (!window.currentTab) return;
+            if (confirm(`確定要刪除整個「${window.currentTab}」分頁與底下所有影片嗎？`)) {
+                delete window.db[window.currentTab];
+                window.customTabOrder = window.customTabOrder.filter(k => k !== window.currentTab);
+                const remainder = window.getSortedTabsList();
+                window.currentTab = remainder.length > 0 ? remainder[0] : "";
+                window.saveToStorage();
+                window.renderTabs();
+                window.renderCards();
+            }
+        }
+
+        window.renameTabAction = function(oldName) {
+            const newName = prompt(`請輸入「${oldName}」的新名稱：`, oldName);
+            if (newName && newName.trim() && newName.trim() !== oldName) {
+                const cleanName = newName.trim();
+                if (window.db[cleanName]) return alert('該分頁名稱已存在！');
+                window.db[cleanName] = window.db[oldName];
+                delete window.db[oldName];
+                window.customTabOrder = window.customTabOrder.map(k => k === oldName ? cleanName : k);
+                if (window.currentTab === oldName) window.currentTab = cleanName;
+                window.renderTabs();
+                window.saveToStorage();
+            }
+        }
+
         window.toggleNumericSort = function() {
             const tabs = window.getSortedTabsList();
             if (tabs.length === 0) return;
-
             const getLeadingNumber = (str) => {
                 const match = str.match(/^(\d+)/);
                 return match ? parseInt(match[1], 10) : 0;
             };
-
             const direction = window.currentNumericDirection;
-
             tabs.sort((a, b) => {
                 const numA = getLeadingNumber(a);
                 const numB = getLeadingNumber(b);
                 return direction === 'desc' ? (numB - numA) : (numA - numB);
             });
-
             window.customTabOrder = tabs;
-
             const btn = document.getElementById('toggleNumericOrderBtn');
             if (direction === 'desc') {
                 if (btn) btn.innerText = "🔢 數字排序：升序 (1→5)";
@@ -702,28 +671,37 @@
                 if (btn) btn.innerText = "🔢 數字排序：降序 (5→1)";
                 window.currentNumericDirection = 'desc';
             }
-
             window.renderTabs();
             window.saveToStorage();
         }
 
-        window.renameTabAction = function(oldName) {
-            const newName = prompt(`請輸入「${oldName}」的新名稱：`, oldName);
-            if (newName && newName.trim() && newName.trim() !== oldName) {
-                const cleanName = newName.trim();
-                if (window.db[cleanName]) return alert('該分頁名稱已存在！');
-                
-                window.db[cleanName] = window.db[oldName];
-                delete window.db[oldName];
+        window.addVideoAction = function() {
+            const titleInput = document.getElementById('newVideoTitle');
+            const urlInput = document.getElementById('newVideoUrl');
+            if (!window.currentTab) return alert("請先選取或建立一個分頁！");
+            if (!titleInput.value.trim() || !urlInput.value.trim()) return alert("請完整填入名稱與網址！");
+            
+            if (!window.db[window.currentTab]) window.db[window.currentTab] = [];
+            window.db[window.currentTab].push({
+                title: titleInput.value.trim(),
+                url: urlInput.value.trim()
+            });
 
-                window.customTabOrder = window.customTabOrder.map(k => k === oldName ? cleanName : k);
+            titleInput.value = "";
+            urlInput.value = "";
+            window.saveToStorage();
+            window.renderCards();
+        }
 
-                if (window.currentTab === oldName) window.currentTab = cleanName;
-                window.renderTabs();
+        window.deleteVideoAction = function(index) {
+            if (confirm("確定要刪除這部影片嗎？")) {
+                window.db[window.currentTab].splice(index, 1);
                 window.saveToStorage();
+                window.renderCards();
             }
         }
 
+        // 渲染 UI 元件
         window.renderTabs = function() {
             const container = document.getElementById('tabsContainer');
             if (!container) return;
@@ -756,44 +734,148 @@
 
                 if (window.isAdminMode) {
                     itemWrapper.setAttribute('draggable', 'true');
-
                     const renameBtn = document.createElement('button');
                     renameBtn.className = 'tab-rename-inline-btn';
-                    renameBtn.innerHTML = '✏️';
-                    renameBtn.onclick = function(e) {
-                        e.stopPropagation(); 
-                        window.renameTabAction(tabName);
-                    };
+                    renameBtn.innerText = '✏️';
+                    renameBtn.onclick = (e) => { e.stopPropagation(); window.renameTabAction(tabName); };
                     itemWrapper.appendChild(renameBtn);
-
-                    itemWrapper.addEventListener('dragstart', (e) => {
-                        itemWrapper.classList.add('dragging');
-                        e.dataTransfer.setData('text/plain', tabName);
-                    });
-                    itemWrapper.addEventListener('dragend', () => itemWrapper.classList.remove('dragging'));
                 }
                 container.appendChild(itemWrapper);
             });
+        }
 
-            if (window.isAdminMode) {
-                container.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    const afterElement = getDragAfterElement(container, e.clientY);
-                    const draggingElement = document.querySelector('.tab-item-wrapper.dragging');
-                    if (!draggingElement) return;
-                    if (afterElement == null) {
-                        container.appendChild(draggingElement);
-                    } else {
-                        container.insertBefore(draggingElement, afterElement);
-                    }
-                });
+        window.renderSubTabs = function() {
+            const container = document.getElementById('subTabsContainer');
+            if (!container) return;
+            container.innerHTML = '';
 
-                container.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    window.customTabOrder = Array.from(container.querySelectorAll('.tab-item-wrapper')).map(el => el.dataset.tabName);
-                    window.saveToStorage(); 
-                });
+            const subTabs = [
+                { id: 'normal', label: '🎬 一般模式' },
+                { id: 'vr', label: '🕶️ VR 360 模式' }
+            ];
+
+            subTabs.forEach(tab => {
+                const btn = document.createElement('button');
+                btn.className = `sub-tab-btn ${window.currentSubTab === tab.id ? 'active' : ''}`;
+                btn.innerText = tab.label;
+                btn.onclick = function() {
+                    window.currentSubTab = tab.id;
+                    window.renderSubTabs();
+                    window.renderCards();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        window.renderCards = function() {
+            const grid = document.getElementById('videoGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            if (!window.currentTab || !window.db[window.currentTab] || window.db[window.currentTab].length === 0) {
+                grid.innerHTML = '<div class="status-msg">此分頁內尚無影片，點選右上方後台面板可開始新增！</div>';
+                return;
             }
+
+            const currentVideos = window.db[window.currentTab];
+
+            currentVideos.forEach((video, index) => {
+                const videoId = extractVideoId(video.url);
+                const isVrLink = video.title.toLowerCase().includes('360') || video.title.toLowerCase().includes('vr');
+                
+                // 子分頁模式過濾
+                if (window.currentSubTab === 'vr' && !isVrLink) return;
+                if (window.currentSubTab === 'normal' && isVrLink) return;
+
+                const card = document.createElement('div');
+                card.className = 'video-card';
+
+                const playerWrapper = document.createElement('div');
+                playerWrapper.className = 'video-player-wrapper';
+
+                if (videoId) {
+                    const thumb = document.createElement('img');
+                    thumb.className = 'video-thumbnail';
+                    thumb.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+                    thumb.alt = video.title;
+
+                    const overlay = document.createElement('div');
+                    overlay.className = 'play-overlay';
+                    overlay.innerHTML = '<div class="play-button-icon"></div>';
+
+                    playerWrapper.appendChild(thumb);
+                    playerWrapper.appendChild(overlay);
+
+                    playerWrapper.onclick = function() {
+                        playerWrapper.innerHTML = `<iframe src="${convertToEmbedUrl(video.url, true)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+                        playerWrapper.onclick = null; 
+                    };
+                } else {
+                    playerWrapper.innerHTML = '<div style="color:white; display:flex; align-items:center; justify-content:center; height:100%; font-size:12px;">無效的影片連結</div>';
+                }
+
+                const info = document.createElement('div');
+                info.className = 'video-info';
+                
+                const title = document.createElement('div');
+                title.className = 'video-title';
+                title.innerText = video.title;
+                info.appendChild(title);
+
+                if (window.isAdminMode) {
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'btn btn-danger';
+                    delBtn.style.width = '100%';
+                    delBtn.style.marginTop = '8px';
+                    delBtn.innerText = '🗑️ 移除此影片';
+                    delBtn.onclick = () => window.deleteVideoAction(index);
+                    info.appendChild(delBtn);
+                }
+
+                card.appendChild(playerWrapper);
+                card.appendChild(info);
+                grid.appendChild(card);
+            });
+
+            if (grid.children.length === 0) {
+                grid.innerHTML = '<div class="status-msg">此分類下無對應模式的影片。</div>';
+            }
+        }
+
+        // 拖曳排序功能 (Drag and Drop)
+        function initDragAndDrop() {
+            const container = document.getElementById('tabsContainer');
+            let dragTarget = null;
+
+            container.addEventListener('dragstart', e => {
+                if (!window.isAdminMode) return e.preventDefault();
+                const wrapper = e.target.closest('.tab-item-wrapper');
+                if (wrapper) {
+                    dragTarget = wrapper;
+                    wrapper.classList.add('dragging');
+                }
+            });
+
+            container.addEventListener('dragend', e => {
+                const wrapper = e.target.closest('.tab-item-wrapper');
+                if (wrapper) wrapper.classList.remove('dragging');
+                
+                // 儲存新排序到系統
+                const currentWrappers = Array.from(container.querySelectorAll('.tab-item-wrapper'));
+                window.customTabOrder = currentWrappers.map(el => el.dataset.tabName);
+                window.saveToStorage();
+            });
+
+            container.addEventListener('dragover', e => {
+                if (!window.isAdminMode) return;
+                e.preventDefault();
+                const afterElement = getDragAfterElement(container, e.clientY);
+                if (afterElement == null) {
+                    container.appendChild(dragTarget);
+                } else {
+                    container.insertBefore(dragTarget, afterElement);
+                }
+            });
         }
 
         function getDragAfterElement(container, y) {
@@ -807,180 +889,6 @@
                     return closest;
                 }
             }, { offset: Number.NEGATIVE_INFINITY }).element;
-        }
-
-        window.addTab = function() {
-            const input = document.getElementById('newTabName');
-            const name = input ? input.value.trim() : '';
-            if (!name || window.db[name]) return alert('名稱不正確或已存在');
-
-            window.db[name] = [];
-            window.customTabOrder.unshift(name);
-
-            window.currentTab = name;
-            window.currentSubTab = "normal";
-            if (input) input.value = '';
-            
-            window.renderTabs();
-            window.renderSubTabs();
-            window.renderCards();
-            window.saveToStorage(); 
-        }
-
-        window.renderSubTabs = function() {
-            const subWrapper = document.getElementById('subTabsWrapper');
-            if (!subWrapper) return;
-            subWrapper.innerHTML = '';
-
-            const subFilters = [ { id: 'all', name: '全部' }, { id: 'normal', name: 'Normal' }, { id: '360', name: '360' } ];
-            subFilters.forEach(filter => {
-                const subBtn = document.createElement('button');
-                subBtn.className = `sub-tab-btn ${window.currentSubTab === filter.id ? 'active' : ''}`;
-                subBtn.innerText = filter.name;
-                subBtn.onclick = function() {
-                    window.currentSubTab = filter.id;
-                    window.renderSubTabs();
-                    window.renderCards();
-                };
-                subWrapper.appendChild(subBtn);
-            });
-        }
-
-        window.renderCards = function() {
-            const wrapper = document.getElementById('videoWrapper');
-            if (!wrapper) return;
-            wrapper.innerHTML = '';
-        
-            if (!window.db || !window.currentTab || !window.db[window.currentTab] || window.db[window.currentTab].length === 0) {
-                wrapper.innerHTML = `<div class="status-msg">📭 此分頁目前空空如也</div>`;
-                return;
-            }
-        
-            const originalList = window.db[window.currentTab];
-            const filteredList = originalList.map((item, originalIndex) => ({ ...item, originalIndex })).filter(item => {
-                const has360 = item.title && item.title.toLowerCase().includes('360');
-                if (window.currentSubTab === '360') return has360;
-                if (window.currentSubTab === 'normal') return !has360;
-                return true; 
-            });
-        
-            if (filteredList.length === 0) {
-                wrapper.innerHTML = `<div class="status-msg">📭 沒有符合條件的影片</div>`;
-                return;
-            }
-        
-            filteredList.forEach((item) => {
-                const card = document.createElement('div');
-                card.className = 'video-card';
-        
-                const playerWrapper = document.createElement('div');
-                playerWrapper.className = 'video-player-wrapper';
-                
-                const videoId = extractVideoId(item.url);
-                if (videoId) {
-                    const thumbImg = document.createElement('img');
-                    thumbImg.className = 'video-thumbnail';
-                    thumbImg.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-                    thumbImg.alt = item.title;
-                    thumbImg.loading = "lazy";
-                    playerWrapper.appendChild(thumbImg);
-
-                    const overlay = document.createElement('div');
-                    overlay.className = 'play-overlay';
-                    overlay.innerHTML = `<div class="play-button-icon"></div>`;
-                    playerWrapper.appendChild(overlay);
-
-                    playerWrapper.onclick = function() {
-                        playerWrapper.innerHTML = `<iframe src="${convertToEmbedUrl(item.url, true)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
-                        playerWrapper.onclick = null;
-                    };
-                } else {
-                    playerWrapper.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:12px;">無效的影片連結</div>`;
-                }
-
-                const info = document.createElement('div');
-                info.className = 'video-info';
-
-                const title = document.createElement('div');
-                title.className = 'video-title';
-                title.innerText = item.title || "未命名影片";
-                info.appendChild(title);
-
-                if (window.isAdminMode) {
-                    const delBtn = document.createElement('button');
-                    delBtn.className = 'btn btn-danger';
-                    delBtn.style.width = '100%';
-                    delBtn.style.marginTop = '6px';
-                    delBtn.innerText = '🗑️ 刪除影片';
-                    delBtn.onclick = function(e) {
-                        e.stopPropagation();
-                        if (confirm(`確定要刪除「${item.title}」嗎？`)) {
-                            window.db[window.currentTab].splice(item.originalIndex, 1);
-                            window.renderCards();
-                            window.saveToStorage();
-                        }
-                    };
-                    info.appendChild(delBtn);
-                }
-
-                card.appendChild(playerWrapper);
-                card.appendChild(info);
-                wrapper.appendChild(card);
-            });
-        }
-
-        // 管理員相關殘留虛擬方法宣告
-        window.checkPassword = function() {
-            const pw = prompt("請輸入管理員密碼：");
-            if (pw === "admin123") {
-                window.isAdminMode = true;
-                document.body.classList.add('admin-mode-active');
-                document.getElementById('adminArea').classList.remove('hidden');
-                document.getElementById('adminLoginBtn').classList.add('hidden');
-                window.renderTabs();
-                window.renderCards();
-            } else {
-                alert("密碼錯誤！");
-            }
-        }
-        window.lockAdmin = function() {
-            window.isAdminMode = false;
-            document.body.classList.remove('admin-mode-active');
-            document.getElementById('adminArea').classList.add('hidden');
-            document.getElementById('adminLoginBtn').classList.remove('hidden');
-            window.renderTabs();
-            window.renderCards();
-        }
-        window.flipOrder = function() {
-            if(window.currentTab && window.db[window.currentTab]) {
-                window.db[window.currentTab].reverse();
-                window.renderCards();
-                window.saveToStorage();
-            }
-        }
-        window.removeCurrentTab = function() {
-            if (!window.currentTab) return;
-            if (confirm(`確定要刪除整個「${window.currentTab}」分頁群組嗎？`)) {
-                delete window.db[window.currentTab];
-                window.customTabOrder = window.customTabOrder.filter(k => k !== window.currentTab);
-                window.currentTab = "";
-                window.saveToStorage();
-            }
-        }
-        window.importVideos = function() {
-            const raw = document.getElementById('rawInput').value.trim();
-            if(!raw) return alert("請輸入內容");
-            // 模擬最基本解析格式：每一行一對 Title, URL
-            const lines = raw.split('\n');
-            lines.forEach(line => {
-                const parts = line.split(',');
-                if(parts.length >= 2 && window.currentTab) {
-                    window.db[window.currentTab].push({ title: parts[0].trim(), url: parts[1].trim() });
-                }
-            });
-            document.getElementById('rawInput').value = '';
-            window.renderCards();
-            window.saveToStorage();
         }
     </script>
 </body>
