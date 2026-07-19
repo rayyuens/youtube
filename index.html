@@ -65,15 +65,25 @@
         }
         .sidebar-header h2 { font-size: 16px; font-weight: 700; color: var(--text-main); }
 
-        /* 分頁直排容器 */
+        /* ↕️ 核心優化：確保分頁直排容器可以順暢地上下滾動 */
         #tabsContainer {
             padding: 12px;
             display: flex;
             flex-direction: column;
             gap: 6px;
-            overflow-y: auto;
+            overflow-y: auto; /* 超出高度時自動允許上下滾動 */
             flex-grow: 1;
-            -webkit-overflow-scrolling: touch;
+            height: calc(100vh - 70px); /* 扣除 header 後的剩餘所有高度 */
+            -webkit-overflow-scrolling: touch; /* 確保 iOS Safari 滾動有原生滑順同彈性效果 */
+        }
+        
+        /* 隱藏滾動條（Scrollbar），等介面更精簡，但依然可以滾動 */
+        #tabsContainer::-webkit-scrollbar {
+            display: none;
+        }
+        #tabsContainer {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
         }
         
         /* 直排分頁按鈕 */
@@ -97,6 +107,7 @@
             line-height: normal; 
             height: 44px;
             box-sizing: border-box;
+            flex-shrink: 0; /* 確保按鈕本身唔會因為滾動容器而被壓縮變形 */
         }
         .tab-btn:hover { color: var(--text-main); background: #f1f5f9; }
         .tab-btn.active { background: #eef2ff; color: var(--primary); border-left: 4px solid var(--primary); border-radius: 4px var(--radius) var(--radius) 4px; }
@@ -369,7 +380,6 @@
             }
         }
 
-        // 🧠 核心：將普通 YouTube 網址轉換成內嵌 Embed 專用網址
         function convertToEmbedUrl(url) {
             if (!url) return '';
             let videoId = null;
@@ -379,11 +389,10 @@
                 } else if (url.includes('v=')) {
                     videoId = url.split('v=')[1].split('&')[0].split(/[?#]/)[0];
                 } else if (url.includes('embed/')) {
-                    return url; // 已經係 embed 格式就直接回傳
+                    return url;
                 }
             } catch(e) { console.error(e); }
             
-            // 回傳帶有 iOS 友善設定的內嵌播放網址
             return videoId ? `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0` : url;
         }
 
@@ -442,7 +451,6 @@
                 const card = document.createElement('div');
                 card.className = 'video-card';
 
-                // 🎬 核心改動：直接使用 iframe 替代原本的 <a> 圖片跳轉連結
                 const playerWrapper = document.createElement('div');
                 playerWrapper.className = 'video-player-wrapper';
                 
