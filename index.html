@@ -345,7 +345,7 @@
             <h3>🛠️ 管理員控制台</h3>
             <div class="admin-actions">
                 <button onclick="lockAdmin()" class="btn">🔒 鎖定</button>
-                <button id="toggleNumericOrderBtn" onclick="toggleNumericSort()" class="btn btn-primary">🔢 數字排序：降序 (5→1)</button>
+                <button id="toggleNumericOrderBtn" onclick="toggleNumericSort()" class="btn btn-primary">🔢 數字排序：切換 (5→1 / 1→5)</button>
                 <button onclick="flipOrder()" class="btn">↕️ 顛倒影片順序</button>
                 <button onclick="removeCurrentTab()" class="btn btn-danger">🗑️ 刪除分頁</button>
             </div>
@@ -397,11 +397,12 @@
         window.currentSubTab = "normal"; 
         window.isAdminMode = false;
         
-        // 追蹤當前排序方向：'desc' 代表 5,4,3,2,1；'asc' 代表 1,2,3,4,5
+        // 🔹 改用狀態追蹤：'desc' (降序 5→1), 'asc' (升序 1→5)
+        // 預設第一次撳落去執行降序 (Decrease)
         window.currentNumericDirection = 'desc'; 
 
-        // 防止 Firebase 重複監聽導致覆蓋本地自定義順序的旗標
-        let ignoreNextFirebaseUpdate = false;
+        // 🔹 高強度 Firebase 同步防禦鎖時間戳
+        let lastLocalSaveTime = 0;
 
         if (window.innerWidth <= 768) {
             document.addEventListener("DOMContentLoaded", () => {
@@ -457,9 +458,10 @@
 
         // 監聽 Firebase 資料庫狀態
         dbRef.on('value', (snapshot) => {
-            if (ignoreNextFirebaseUpdate) {
-                ignoreNextFirebaseUpdate = false;
-                return; // 跳過因本地儲存觸發嘅回傳，防止自定義排序被還原成字母序
+            // 防禦機制：如果本地啱啱儲存完未夠 1.5 秒，拒絕 Firebase 回傳刷掉本地新排序
+            const now = Date.now();
+            if (now - lastLocalSaveTime < 1500) {
+                return; 
             }
             try {
                 const data = snapshot.val();
@@ -477,55 +479,58 @@
         });
 
         window.saveToStorage = function() {
-            ignoreNextFirebaseUpdate = true; // 鎖定下一次 Firebase 回調
+            lastLocalSaveTime = Date.now(); // 刷新本地更新時間戳
             dbRef.set(window.db).catch((err) => {
                 console.error("同步失敗", err);
-                ignoreNextFirebaseUpdate = false;
+                lastLocalSaveTime = 0;
             });
         }
 
-        // 🆕 核心功能：切換數字排序 (5->1 或 1->5)
+        // 🔢 核心功能修復：精準數字切換 (1st: 5->1, 2nd: 1->5, 3rd: 5->1)
         window.toggleNumericSort = function() {
             const tabs = Object.keys(window.db || {});
             if (tabs.length === 0) return;
 
-            // 輔助函式：提取字串開頭嘅數字，無數字就當作 0
+            // 提取字串最前頭嘅數字，如果無數字就當作 0
             const getLeadingNumber = (str) => {
                 const match = str.match(/^(\d+)/);
                 return match ? parseInt(match[1], 10) : 0;
             };
 
-            // 根據當前方向進行排序計算
+            const direction = window.currentNumericDirection;
+
+            // 執行排序
             tabs.sort((a, b) => {
                 const numA = getLeadingNumber(a);
                 const numB = getLeadingNumber(b);
                 
-                if (window.currentNumericDirection === 'desc') {
-                    return numB - numA; // 降序：大數字排先 (5, 4, 3...)
+                if (direction === 'desc') {
+                    return numB - numA; // 降序：大數字排先 (5, 4, 3, 2, 1)
                 } else {
-                    return numA - numB; // 升序：細數字排先 (1, 2, 3...)
+                    return numA - numB; // 升序：細數字排先 (1, 2, 3, 4, 5)
                 }
             });
 
-            // 根據排序結果重組整個資料庫物件（Object Key 順序）
+            // 依照排序好嘅順序重新組裝整個資料庫
             const sortedDb = {};
             tabs.forEach(key => {
                 sortedDb[key] = window.db[key];
             });
             window.db = sortedDb;
 
-            // 切換下一次撳掣嘅排序方向，並更新按鈕文字
+            // 更新按鈕畫面的提示文字
             const btn = document.getElementById('toggleNumericOrderBtn');
-            if (window.currentNumericDirection === 'desc') {
-                window.currentNumericDirection = 'asc';
+            if (direction === 'desc') {
                 if (btn) btn.innerText = "🔢 數字排序：升序 (1→5)";
+                window.currentNumericDirection = 'asc'; // 設下一次點擊為升序
             } else {
-                window.currentNumericDirection = 'desc';
                 if (btn) btn.innerText = "🔢 數字排序：降序 (5→1)";
+                window.currentNumericDirection = 'desc'; // 設下一次點擊為降序
             }
 
+            // 立刻渲染本地畫面，並上傳鎖定順序
             window.renderTabs();
-            window.saveToStorage(); // 同步到 Firebase 鎖定此自定義順序
+            window.saveToStorage(); 
         }
 
         window.renameTabAction = function(oldName) {
@@ -648,7 +653,6 @@
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
-        // 新增分頁邏輯：自動將新分頁塞喺最前面（置頂）並維持當前自定義鏈
         window.addTab = function() {
             const input = document.getElementById('newTabName');
             const name = input ? input.value.trim() : '';
