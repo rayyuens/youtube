@@ -764,49 +764,86 @@
             }
         }
 
-        window.importVideos = function() {
-            const textarea = document.getElementById('rawInput');
-            if (!textarea || !textarea.value.trim()) return alert('內容不能為空');
-            const lines = textarea.value.split('\n');
-            let count = 0;
-            let activeImportTab = window.currentTab;
+window.importVideos = function() {
+    const textarea = document.getElementById('rawInput');
+    if (!textarea || !textarea.value.trim()) {
+        return alert('內容不能為空');
+    }
 
-            lines.forEach(line => {
-                line = line.trim();
-                if (!line) return;
-                if (line.startsWith('[') && line.endsWith(']')) {
-                    const targetTabName = line.substring(1, line.length - 1).trim();
-                    if (targetTabName) {
-                        if (!window.db[targetTabName]) {
-                            window.db[targetTabName] = [];
-                            window.customTabOrder.push(targetTabName);
-                        }
-                        activeImportTab = targetTabName;
-                        if (!window.currentTab) window.currentTab = targetTabName; 
-                    }
-                    return;
-                }
-                const splitIndex = line.lastIndexOf(' ');
-                if (splitIndex !== -1) {
-                    const title = line.substring(0, splitIndex).trim();
-                    const url = line.substring(splitIndex + 1).trim();
-                    if (url.startsWith('http') && title) {
-                        if (!window.db[activeImportTab]) window.db[activeImportTab] = [];
-                        window.db[activeImportTab].push({ title, url });
-                        count++;
-                    }
-                }
-            });
+    const lines = textarea.value.split(/\r?\n/);
+    let count = 0;
+    let activeImportTab = window.currentTab;
 
-            if (count > 0) {
-                window.renderTabs();
-                window.renderSubTabs();
-                window.renderCards();
-                window.saveToStorage();
-                textarea.value = '';
-                alert(`成功導入 ${count} 部影片！`);
+    lines.forEach(line => {
+        line = line.trim();
+        if (!line) return;
+
+        // ===========================
+        // Handle [Tab Name]
+        // ===========================
+        if (line.startsWith('[') && line.endsWith(']')) {
+            const targetTabName = line.substring(1, line.length - 1).trim();
+
+            if (targetTabName) {
+                if (!window.db[targetTabName]) {
+                    window.db[targetTabName] = [];
+                    window.customTabOrder.push(targetTabName);
+                }
+
+                activeImportTab = targetTabName;
+
+                if (!window.currentTab) {
+                    window.currentTab = targetTabName;
+                }
             }
+
+            return;
         }
+
+        // ===========================
+        // Parse: Title + URL
+        // Supports:
+        // - single space
+        // - multiple spaces
+        // - tabs
+        // - mixed spaces/tabs
+        // ===========================
+        const match = line.match(/^(.*?)\s+(https?:\/\/\S+)$/);
+
+        if (!match) {
+            console.warn("Invalid line:", line);
+            return;
+        }
+
+        const title = match[1].trim();
+        const url = match[2].trim();
+
+        if (!title || !url) return;
+
+        if (!window.db[activeImportTab]) {
+            window.db[activeImportTab] = [];
+        }
+
+        window.db[activeImportTab].push({
+            title,
+            url
+        });
+
+        count++;
+    });
+
+    if (count > 0) {
+        window.renderTabs();
+        window.renderSubTabs();
+        window.renderCards();
+        window.saveToStorage();
+
+        textarea.value = '';
+        alert(`成功導入 ${count} 部影片！`);
+    } else {
+        alert("沒有找到可匯入的影片，請檢查格式。");
+    }
+}
 
         window.flipOrder = function() {
             if (!window.currentTab || !window.db[window.currentTab].length) return;
