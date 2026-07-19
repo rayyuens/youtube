@@ -950,21 +950,49 @@
                 window.saveToStorage();
             }
         }
-        window.importVideos = function() {
-            const raw = document.getElementById('rawInput').value.trim();
-            if(!raw) return alert("請輸入內容");
-            // 模擬最基本解析格式：每一行一對 Title, URL
-            const lines = raw.split('\n');
-            lines.forEach(line => {
-                const parts = line.split(',');
-                if(parts.length >= 2 && window.currentTab) {
-                    window.db[window.currentTab].push({ title: parts[0].trim(), url: parts[1].trim() });
+    window.importVideos = function() {
+        const raw = document.getElementById('rawInput').value.trim();
+        if(!raw) return alert("請輸入或貼上影片資料！");
+        if(!window.currentTab) return alert("請先選擇或建立一個分頁群組才能匯入！");
+    
+        const lines = raw.split('\n');
+        let successCount = 0;
+    
+        lines.forEach(line => {
+            let cleanLine = line.trim();
+            if (!cleanLine) return;
+    
+            // 升級版正則表達式：自動抓取行尾的 YouTube 連結，前面剩餘的通通當作標題
+            // 支援包含 https://youtu.be/ 或 https://www.youtube.com/watch?v=
+            const ytRegex = /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)[^\s]+)/;
+            const match = cleanLine.match(ytRegex);
+    
+            if (match) {
+                const url = match[1].trim();
+                // 把網址以外的部分拿來當標題，移除前後可能殘留的 Tab (\t) 或空格
+                let title = cleanLine.replace(url, '').trim(); 
+                
+                // 如果標題為空，給個預設值
+                if (!title) title = "未命名影片";
+    
+                if (!window.db[window.currentTab]) {
+                    window.db[window.currentTab] = [];
                 }
-            });
+    
+                window.db[window.currentTab].push({ title: title, url: url });
+                successCount++;
+            }
+        });
+    
+        if (successCount > 0) {
             document.getElementById('rawInput').value = '';
             window.renderCards();
             window.saveToStorage();
+            alert(`⚡ 智能解析成功！已在「${window.currentTab}」群組中新增 ${successCount} 部影片！`);
+        } else {
+            alert("找不到有效的 YouTube 網址，請確認貼入的格式是否正確。");
         }
+    }
     </script>
 </body>
 </html>
