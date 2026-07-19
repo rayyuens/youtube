@@ -70,7 +70,7 @@
             padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 4px; /* 🤏 調緊分頁之間的間距 */
+            gap: 4px; 
             overflow-y: auto; 
             flex-grow: 1;
             height: calc(100vh - 70px);
@@ -86,10 +86,10 @@
             scrollbar-width: none;
         }
         
-        /* 直排分頁按鈕 */
+        /* 直排主分頁按鈕 */
         .tab-btn {
             width: 100%;
-            padding: 10px 14px; /* 🤏 減少上下 Padding 讓按鈕更緊湊 */
+            padding: 10px 14px; 
             border-radius: var(--radius);
             border: 1px solid transparent;
             background: transparent;
@@ -110,6 +110,27 @@
         }
         .tab-btn:hover { color: var(--text-main); background: #f1f5f9; }
         .tab-btn.active { background: #eef2ff; color: var(--primary); border-left: 4px solid var(--primary); border-radius: 4px var(--radius) var(--radius) 4px; }
+
+        /* 🆕 子分頁橫向容器 (360 / Normal Filter) */
+        .sub-tab-container {
+            display: flex;
+            gap: 4px;
+            padding: 2px 4px 6px 16px; /* 縮進置中於主分頁下方 */
+            flex-shrink: 0;
+        }
+        .sub-tab-btn {
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            background: #f1f5f9;
+            color: var(--text-muted);
+            border: 1px solid transparent;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .sub-tab-btn:hover { background: #e2e8f0; color: var(--text-main); }
+        .sub-tab-btn.active { background: var(--primary); color: white; }
 
         /* 右側主內容區 */
         main {
@@ -332,15 +353,17 @@
 
         const defaultData = {
             "TankShow": [
-                { title: "TankShow 10 360 現場精采片段", url: "https://youtu.be/A5ruMMW0_vY" }
+                { title: "TankShow 10 360 現場精采片段", url: "https://youtu.be/A5ruMMW0_vY" },
+                { title: "TankShow 普通高清紀錄片", url: "https://youtu.be/A5ruMMW0_vY" }
             ],
             "動物精選": [
-                { title: "可愛大熊貓的搞笑日常派對", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }
+                { title: "可愛大熊貓的搞笑日常派對 360VR", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }
             ]
         };
 
         window.db = {}; 
         window.currentTab = "";
+        window.currentSubTab = "all"; // 🆕 預設子分類：all, 360, normal
         window.isAdminMode = false;
 
         if (window.innerWidth <= 768) {
@@ -419,20 +442,55 @@
             
             const tabs = Object.keys(window.db || {});
             const mainTitle = document.getElementById('mainTitle');
-            if(mainTitle && window.currentTab) mainTitle.innerText = `${window.currentTab}`;
+            
+            // 更新頂部 Title 反映現時子分類
+            if(mainTitle && window.currentTab) {
+                let suffix = window.currentSubTab === '360' ? ' (360°)' : (window.currentSubTab === 'normal' ? ' (Normal)' : '');
+                mainTitle.innerText = `${window.currentTab}${suffix}`;
+            }
 
             tabs.forEach((tabName) => {
+                const isSelected = tabName === window.currentTab;
+                
+                // 建立主分頁按鈕
                 const btn = document.createElement('button');
-                btn.className = `tab-btn ${tabName === window.currentTab ? 'active' : ''}`;
+                btn.className = `tab-btn ${isSelected ? 'active' : ''}`;
                 btn.innerText = `📁 ${tabName}`;
                 
                 btn.onclick = function() {
                     window.currentTab = tabName;
+                    window.currentSubTab = "all"; // 切換大分頁時，重設子分頁為 all
                     window.renderTabs();
                     window.renderCards();
                     window.closeSidebarOnMobile();
                 };
                 container.appendChild(btn);
+
+                // 🆕 如果呢個分頁係 Active，喺佢下方加入 360 / Normal 的子選單
+                if (isSelected) {
+                    const subContainer = document.createElement('div');
+                    subContainer.className = 'sub-tab-container';
+
+                    const subFilters = [
+                        { id: 'all', name: '全部' },
+                        { id: '360', name: '360' },
+                        { id: 'normal', name: 'Normal' }
+                    ];
+
+                    subFilters.forEach(filter => {
+                        const subBtn = document.createElement('button');
+                        subBtn.className = `sub-tab-btn ${window.currentSubTab === filter.id ? 'active' : ''}`;
+                        subBtn.innerText = filter.name;
+                        subBtn.onclick = function(e) {
+                            e.stopPropagation(); // 防止觸發主分頁點擊
+                            window.currentSubTab = filter.id;
+                            window.renderTabs();
+                            window.renderCards();
+                        };
+                        subContainer.appendChild(subBtn);
+                    });
+                    container.appendChild(subContainer);
+                }
             });
         }
 
@@ -446,7 +504,21 @@
                 return;
             }
 
-            window.db[window.currentTab].forEach((item, index) => {
+            // 🆕 根據子分頁篩選（Filter）影片數據
+            const originalList = window.db[window.currentTab];
+            const filteredList = originalList.map((item, originalIndex) => ({ ...item, originalIndex })).filter(item => {
+                const has360 = item.title && item.title.toLowerCase().includes('360');
+                if (window.currentSubTab === '360') return has360;
+                if (window.currentSubTab === 'normal') return !has360;
+                return true; // 'all'
+            });
+
+            if (filteredList.length === 0) {
+                wrapper.innerHTML = `<div class="status-msg">📭 沒有符合條件的影片</div>`;
+                return;
+            }
+
+            filteredList.forEach((item) => {
                 const card = document.createElement('div');
                 card.className = 'video-card';
 
@@ -475,7 +547,8 @@
                     delBtn.className = 'btn btn-danger';
                     delBtn.style.height = '30px';
                     delBtn.innerText = '刪除';
-                    delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); window.deleteVideo(index); };
+                    // 刪除時要對應原陣列的正確 index
+                    delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); window.deleteVideo(item.originalIndex); };
                     actions.appendChild(delBtn);
                     info.appendChild(actions);
                 }
@@ -491,6 +564,7 @@
             if (!name || window.db[name]) return alert('名稱不正確或已存在');
             window.db[name] = [];
             window.currentTab = name;
+            window.currentSubTab = "all";
             input.value = '';
             window.renderTabs();
             window.renderCards();
@@ -503,6 +577,7 @@
                 delete window.db[window.currentTab];
                 const remaining = Object.keys(window.db || {});
                 window.currentTab = remaining.length > 0 ? remaining[0] : "";
+                window.currentSubTab = "all";
                 window.renderTabs();
                 window.renderCards();
                 window.saveToStorage();
@@ -575,9 +650,9 @@
             window.renderCards();
         }
 
-        window.deleteVideo = function(index) {
+        window.deleteVideo = function(originalIndex) {
             if (confirm("確定要移除這部影片嗎？")) {
-                window.db[window.currentTab].splice(index, 1);
+                window.db[window.currentTab].splice(originalIndex, 1);
                 window.renderCards();
                 window.saveToStorage();
             }
