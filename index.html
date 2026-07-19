@@ -384,12 +384,8 @@
         const dbRef = database.ref('video_data');
 
         const defaultData = {
-            "2. TankShow": [
-                { title: "TankShow 10 360 現場精采片段", url: "https://youtu.be/A5ruMMW0_vY" }
-            ],
-            "1. 動物精選": [
-                { title: "可愛大熊熊猫的搞笑日常 360VR", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }
-            ]
+            "2. TankShow": [ { title: "TankShow 10 360 現場精采片段", url: "https://youtu.be/A5ruMMW0_vY" } ],
+            "1. 動物精選": [ { title: "可愛大熊熊猫的搞笑日常 360VR", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" } ]
         };
 
         window.db = {}; 
@@ -397,11 +393,10 @@
         window.currentSubTab = "normal"; 
         window.isAdminMode = false;
         
-        // 🔹 改用狀態追蹤：'desc' (降序 5→1), 'asc' (升序 1→5)
-        // 預設第一次撳落去執行降序 (Decrease)
+        // 紀錄目前的自定義分頁排序鏈
+        window.customTabOrder = [];
         window.currentNumericDirection = 'desc'; 
 
-        // 🔹 高強度 Firebase 同步防禦鎖時間戳
         let lastLocalSaveTime = 0;
 
         if (window.innerWidth <= 768) {
@@ -452,24 +447,31 @@
                     return url;
                 }
             } catch(e) { console.error(e); }
-            
             return videoId ? `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0` : url;
         }
 
         // 監聽 Firebase 資料庫狀態
         dbRef.on('value', (snapshot) => {
-            // 防禦機制：如果本地啱啱儲存完未夠 1.5 秒，拒絕 Firebase 回傳刷掉本地新排序
             const now = Date.now();
-            if (now - lastLocalSaveTime < 1500) {
-                return; 
-            }
+            if (now - lastLocalSaveTime < 1500) return; 
+
             try {
-                const data = snapshot.val();
-                window.db = (data && Object.keys(data).length > 0) ? data : defaultData;
+                const data = snapshot.val() || {};
                 
-                const tabs = Object.keys(window.db);
+                // 讀取隱藏嘅自定義排序陣列
+                if (data._tabOrder) {
+                    window.customTabOrder = data._tabOrder;
+                    delete data._tabOrder; // 刪除保留字，避免當成一般影片分頁處理
+                } else {
+                    window.customTabOrder = Object.keys(data).length > 0 ? Object.keys(data) : Object.keys(defaultData);
+                }
+
+                window.db = (Object.keys(data).length > 0) ? data : defaultData;
+                
+                // 依據儲存嘅自定義 customTabOrder 去對齊與校正 window.db
+                const finalTabs = window.getSortedTabsList();
                 if (!window.currentTab || !window.db[window.currentTab]) {
-                    window.currentTab = tabs.length > 0 ? tabs[0] : "";
+                    window.currentTab = finalTabs.length > 0 ? finalTabs[0] : "";
                 }
                 
                 window.renderTabs();
@@ -478,20 +480,40 @@
             } catch (error) { console.error(error); }
         });
 
+        // 輔助函式：取得精準過濾掉保留字並對齊自定義順序嘅分頁陣列
+        window.getSortedTabsList = function() {
+            const actualDbKeys = Object.keys(window.db || {}).filter(k => k !== '_tabOrder');
+            
+            // 如果 customTabOrder 入面有舊數據無包含到嘅新 Key，就塞去前面（置頂）
+            const missingKeys = actualDbKeys.filter(k => !window.customTabOrder.includes(k));
+            
+            // 組合出最終完整嘅有序分頁清單
+            let orderedList = [...missingKeys, ...window.customTabOrder];
+            
+            // 剔除掉已經喺數據庫被刪除嘅 Key
+            return orderedList.filter(k => actualDbKeys.includes(k));
+        }
+
         window.saveToStorage = function() {
-            lastLocalSaveTime = Date.now(); // 刷新本地更新時間戳
-            dbRef.set(window.db).catch((err) => {
+            lastLocalSaveTime = Date.now();
+            
+            // 將當前分頁排好嘅順序更新至數組中
+            const currentOrder = window.getSortedTabsList();
+            
+            // 複製一份資料庫並塞入隱藏的排序鏈欄位
+            const payload = { ...window.db, _tabOrder: currentOrder };
+
+            dbRef.set(payload).catch((err) => {
                 console.error("同步失敗", err);
                 lastLocalSaveTime = 0;
             });
         }
 
-        // 🔢 核心功能修復：精準數字切換 (1st: 5->1, 2nd: 1->5, 3rd: 5->1)
+        // 🔢 核心功能：精準數字切換排序且持久儲存
         window.toggleNumericSort = function() {
-            const tabs = Object.keys(window.db || {});
+            const tabs = window.getSortedTabsList();
             if (tabs.length === 0) return;
 
-            // 提取字串最前頭嘅數字，如果無數字就當作 0
             const getLeadingNumber = (str) => {
                 const match = str.match(/^(\d+)/);
                 return match ? parseInt(match[1], 10) : 0;
@@ -499,57 +521,41 @@
 
             const direction = window.currentNumericDirection;
 
-            // 執行排序
+            // 對暫存的自定義鏈順序進行排序
             tabs.sort((a, b) => {
                 const numA = getLeadingNumber(a);
                 const numB = getLeadingNumber(b);
-                
-                if (direction === 'desc') {
-                    return numB - numA; // 降序：大數字排先 (5, 4, 3, 2, 1)
-                } else {
-                    return numA - numB; // 升序：細數字排先 (1, 2, 3, 4, 5)
-                }
+                return direction === 'desc' ? (numB - numA) : (numA - numB);
             });
 
-            // 依照排序好嘅順序重新組裝整個資料庫
-            const sortedDb = {};
-            tabs.forEach(key => {
-                sortedDb[key] = window.db[key];
-            });
-            window.db = sortedDb;
+            // 強制更新全域排序鏈
+            window.customTabOrder = tabs;
 
-            // 更新按鈕畫面的提示文字
             const btn = document.getElementById('toggleNumericOrderBtn');
             if (direction === 'desc') {
                 if (btn) btn.innerText = "🔢 數字排序：升序 (1→5)";
-                window.currentNumericDirection = 'asc'; // 設下一次點擊為升序
+                window.currentNumericDirection = 'asc';
             } else {
                 if (btn) btn.innerText = "🔢 數字排序：降序 (5→1)";
-                window.currentNumericDirection = 'desc'; // 設下一次點擊為降序
+                window.currentNumericDirection = 'desc';
             }
 
-            // 立刻渲染本地畫面，並上傳鎖定順序
             window.renderTabs();
-            window.saveToStorage(); 
+            window.saveToStorage(); // 儲存包含 _tabOrder 的數據，實現持久化
         }
 
         window.renameTabAction = function(oldName) {
             const newName = prompt(`請輸入「${oldName}」的新名稱：`, oldName);
             if (newName && newName.trim() && newName.trim() !== oldName) {
                 const cleanName = newName.trim();
-                if (window.db[cleanName]) {
-                    alert('該分頁名稱已存在！');
-                    return;
-                }
-                const newDb = {};
-                Object.keys(window.db).forEach(k => {
-                    if (k === oldName) {
-                        newDb[cleanName] = window.db[oldName];
-                    } else {
-                        newDb[k] = window.db[k];
-                    }
-                });
-                window.db = newDb;
+                if (window.db[cleanName]) return alert('該分頁名稱已存在！');
+                
+                window.db[cleanName] = window.db[oldName];
+                delete window.db[oldName];
+
+                // 同步更改自定義鏈入面嘅名稱
+                window.customTabOrder = window.customTabOrder.map(k => k === oldName ? cleanName : k);
+
                 if (window.currentTab === oldName) window.currentTab = cleanName;
                 window.renderTabs();
                 window.saveToStorage();
@@ -561,13 +567,13 @@
             if (!container) return;
             container.innerHTML = '';
             
-            const tabs = Object.keys(window.db || {});
+            // 從完美對齊嘅有序數組中攞資料
+            const tabs = window.getSortedTabsList();
             const mainTitle = document.getElementById('mainTitle');
             if(mainTitle && window.currentTab) mainTitle.innerText = `${window.currentTab}`;
 
             tabs.forEach((tabName) => {
                 const isSelected = tabName === window.currentTab;
-                
                 const itemWrapper = document.createElement('div');
                 itemWrapper.className = 'tab-item-wrapper';
                 itemWrapper.dataset.tabName = tabName;
@@ -593,7 +599,6 @@
                     const renameBtn = document.createElement('button');
                     renameBtn.className = 'tab-rename-inline-btn';
                     renameBtn.innerHTML = '✏️';
-                    renameBtn.title = '重新命名此分頁';
                     renameBtn.onclick = function(e) {
                         e.stopPropagation(); 
                         window.renameTabAction(tabName);
@@ -604,12 +609,8 @@
                         itemWrapper.classList.add('dragging');
                         e.dataTransfer.setData('text/plain', tabName);
                     });
-
-                    itemWrapper.addEventListener('dragend', () => {
-                        itemWrapper.classList.remove('dragging');
-                    });
+                    itemWrapper.addEventListener('dragend', () => itemWrapper.classList.remove('dragging'));
                 }
-
                 container.appendChild(itemWrapper);
             });
 
@@ -619,7 +620,6 @@
                     const afterElement = getDragAfterElement(container, e.clientY);
                     const draggingElement = document.querySelector('.tab-item-wrapper.dragging');
                     if (!draggingElement) return;
-                    
                     if (afterElement == null) {
                         container.appendChild(draggingElement);
                     } else {
@@ -629,12 +629,8 @@
 
                 container.addEventListener('drop', (e) => {
                     e.preventDefault();
-                    const currentUiOrder = Array.from(container.querySelectorAll('.tab-item-wrapper')).map(el => el.dataset.tabName);
-                    const reorderedDb = {};
-                    currentUiOrder.forEach(name => {
-                        if (window.db[name]) reorderedDb[name] = window.db[name];
-                    });
-                    window.db = reorderedDb;
+                    // 當管理員手動滑動拖曳排序，即刻刷新 customTabOrder 鏈
+                    window.customTabOrder = Array.from(container.querySelectorAll('.tab-item-wrapper')).map(el => el.dataset.tabName);
                     window.saveToStorage(); 
                 });
             }
@@ -658,17 +654,12 @@
             const name = input ? input.value.trim() : '';
             if (!name || window.db[name]) return alert('名稱不正確或已存在');
 
-            const newDb = {};
-            newDb[name] = []; // 置頂
+            window.db[name] = [];
+            // 新分頁塞入自定義排序陣列的最前面（置頂）
+            window.customTabOrder.unshift(name);
 
-            Object.keys(window.db).forEach(key => {
-                newDb[key] = window.db[key];
-            });
-
-            window.db = newDb;
             window.currentTab = name;
             window.currentSubTab = "normal";
-            
             if (input) input.value = '';
             
             window.renderTabs();
@@ -682,12 +673,7 @@
             if (!subWrapper) return;
             subWrapper.innerHTML = '';
 
-            const subFilters = [
-                { id: 'all', name: '全部' },
-                { id: 'normal', name: 'Normal' },
-                { id: '360', name: '360' }
-            ];
-
+            const subFilters = [ { id: 'all', name: '全部' }, { id: 'normal', name: 'Normal' }, { id: '360', name: '360' } ];
             subFilters.forEach(filter => {
                 const subBtn = document.createElement('button');
                 subBtn.className = `sub-tab-btn ${window.currentSubTab === filter.id ? 'active' : ''}`;
@@ -757,7 +743,6 @@
                     actions.appendChild(delBtn);
                     info.appendChild(actions);
                 }
-                
                 card.appendChild(info);
                 wrapper.appendChild(card);
             });
@@ -767,7 +752,9 @@
             if (!window.currentTab) return;
             if (confirm(`確定要永久刪除「${window.currentTab}」嗎？`)) {
                 delete window.db[window.currentTab];
-                const remaining = Object.keys(window.db || {});
+                window.customTabOrder = window.customTabOrder.filter(k => k !== window.currentTab);
+                
+                const remaining = window.getSortedTabsList();
                 window.currentTab = remaining.length > 0 ? remaining[0] : "";
                 window.currentSubTab = "normal";
                 window.renderTabs();
@@ -790,7 +777,10 @@
                 if (line.startsWith('[') && line.endsWith(']')) {
                     const targetTabName = line.substring(1, line.length - 1).trim();
                     if (targetTabName) {
-                        if (!window.db[targetTabName]) window.db[targetTabName] = [];
+                        if (!window.db[targetTabName]) {
+                            window.db[targetTabName] = [];
+                            window.customTabOrder.push(targetTabName);
+                        }
                         activeImportTab = targetTabName;
                         if (!window.currentTab) window.currentTab = targetTabName; 
                     }
