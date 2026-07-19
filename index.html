@@ -17,7 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-    <style>
+<style>
         :root {
             --primary: #4f46e5;
             --primary-hover: #4338ca;
@@ -170,7 +170,7 @@
         /* 右側主內容區 */
         main {
             flex-grow: 1;
-            padding: 24px;
+            padding: 0 24px 24px 24px; /* 修正：將上方 padding 設為 0，讓 header 能完全置頂 */
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -178,7 +178,6 @@
             min-width: 0;
         }
 
-        
         /* 頂部導航欄 */
         header {
             position: sticky;
@@ -191,7 +190,7 @@
             gap: 12px;
         
             margin-bottom: 16px;
-            padding: 12px 0 16px;
+            padding: 24px 0 16px; /* 修正：將原本主容器的上方 padding 整合進 header 內部 */
             min-height: 50px;
             flex-shrink: 0;
         
@@ -421,11 +420,13 @@
             body:not(.sidebar-closed) .sidebar-overlay { display: block; }
             body.sidebar-closed .sidebar-overlay { display: none; }
             
-            main { padding: 16px; padding-top: 12px; width: 100%; }
+            main { padding: 0 16px 16px; width: 100%; } /* 修正：手機版同樣將上方間距清空 */
+            header { padding-top: 12px; } /* 修正：將間距補回 header 內部 */
             header h1 { font-size: 15px; }
             .video-grid { grid-template-columns: 1fr; gap: 14px; }
         }
     </style>
+    
 </head>
 <body class="sidebar-closed">
 
