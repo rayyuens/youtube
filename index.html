@@ -245,18 +245,62 @@
         .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .video-card { background: var(--card-bg); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; flex-direction: column; }
         
-        /* 🎬 內嵌影片容器 */
+        /* 🎬 內嵌影片與縮圖容器 */
         .video-player-wrapper { 
             width: 100%; 
             aspect-ratio: 16 / 9; 
             background: #000000; 
             position: relative;
+            cursor: pointer;
+            overflow: hidden;
         }
         .video-player-wrapper iframe {
             width: 100%;
             height: 100%;
             border: none;
             display: block;
+        }
+        
+        /* 補足縮圖與播放按鈕遮罩樣式 */
+        .video-thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+        .video-player-wrapper:hover .video-thumbnail {
+            transform: scale(1.03);
+        }
+        .play-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s ease;
+        }
+        .video-player-wrapper:hover .play-overlay {
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .play-button-icon {
+            width: 54px; height: 54px;
+            background: rgba(239, 68, 68, 0.95);
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .play-button-icon::after {
+            content: '';
+            position: absolute;
+            top: 18px; left: 22px;
+            border-style: solid;
+            border-width: 9px 0 9px 14px;
+            border-color: transparent transparent transparent #ffffff;
+        }
+        .video-player-wrapper:hover .play-button-icon {
+            transform: scale(1.1);
+            background: rgb(220, 38, 38);
         }
 
         .video-info { padding: 14px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between; gap: 10px; }
@@ -267,10 +311,8 @@
         .sidebar-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
             background: rgba(0, 0, 0, 0.15); 
             backdrop-filter: blur(2px);
             z-index: 90; 
@@ -283,8 +325,7 @@
             
             aside {
                 position: fixed;
-                left: 0;
-                top: 0;
+                left: 0; top: 0;
                 height: 100vh;
                 transform: translateX(0);
                 box-shadow: 4px 0 24px rgba(0,0,0,0.15);
@@ -682,7 +723,7 @@
             });
         }
 
-        // 核心渲染：改為「縮圖模式」，點擊才載入 iframe
+        // 核心渲染：改為「縮圖模式」，點擊才載入 iframe (已修正中斷語法)
         window.renderCards = function() {
             const wrapper = document.getElementById('videoWrapper');
             if (!wrapper) return;
@@ -734,65 +775,120 @@
                     playerWrapper.appendChild(img);
                     playerWrapper.appendChild(overlay);
         
-                    // 點擊事件：動態將縮圖替換為真正的 iframe
+                    // 點擊事件：動態將縮圖替換為真正的 iframe 並自動播放
                     playerWrapper.onclick = function() {
                         playerWrapper.onclick = null; // 移除點擊事件，避免重複觸發
                         playerWrapper.innerHTML = ''; // 清空縮圖與遮罩
                         
                         const iframe = document.createElement('iframe');
-                        iframe.src = convertToEmbedUrl(item.url, true); // 傳入 true 開啟自動播放
-                        iframe.setAttribute('allowfullscreen', 'true');
-                        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
-                        
+                        iframe.src = convertToEmbedUrl(item.url, true); // 帶入自動播放引數
+                        iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+                        iframe.allowFullscreen = true;
                         playerWrapper.appendChild(iframe);
                     };
                 } else {
-                    // 如果不是常規 YouTube 連結，直接加載 iframe 作為備用方案
+                    // 如果無法解析 YouTube ID，直接顯示 iframe
                     const iframe = document.createElement('iframe');
-                    iframe.src = convertToEmbedUrl(item.url);
-                    iframe.setAttribute('allowfullscreen', 'true');
-                    iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                    iframe.src = convertToEmbedUrl(item.url, false);
+                    iframe.allowFullscreen = true;
                     playerWrapper.appendChild(iframe);
                 }
-        
-                card.appendChild(playerWrapper);
-        
-                const info = document.createElement('div');
-                info.className = 'video-info';
-                const title = document.createElement('div');
-                title.className = 'video-title';
-                title.innerText = item.title || '未命名影片';
-                info.appendChild(title);
-        
+
+                // 影片資訊與標題
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'video-info';
+                
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'video-title';
+                titleDiv.innerText = item.title || "未命名影片";
+                infoDiv.appendChild(titleDiv);
+
+                // 如果是管理員模式，加入刪除影片按鈕
                 if (window.isAdminMode) {
-                    const actions = document.createElement('div');
-                    actions.className = 'card-actions';
                     const delBtn = document.createElement('button');
                     delBtn.className = 'btn btn-danger';
-                    delBtn.style.height = '30px';
-                    delBtn.innerText = '刪除';
-                    delBtn.onclick = (e) => { 
-                        e.preventDefault(); 
-                        e.stopPropagation(); 
-                        window.deleteVideo(item.originalIndex); 
+                    delBtn.style.width = '100%';
+                    delBtn.style.marginTop = '8px';
+                    delBtn.innerText = '🗑️ 刪除影片';
+                    delBtn.onclick = function() {
+                        if (confirm(`確定要刪除影片「${item.title}」嗎？`)) {
+                            window.db[window.currentTab].splice(item.originalIndex, 1);
+                            window.renderCards();
+                            window.saveToStorage();
+                        }
                     };
-                    actions.appendChild(delBtn);
-                    info.appendChild(actions);
+                    infoDiv.appendChild(delBtn);
                 }
-                card.appendChild(info);
+
+                card.appendChild(playerWrapper);
+                card.appendChild(infoDiv);
                 wrapper.appendChild(card);
             });
         }
 
+        // 🛠️ 補足關鍵輔助解析函式：擷取 YouTube ID
+        function extractVideoId(url) {
+            if (!url) return null;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        // 🛠️ 補足關鍵輔助解析函式：獲取縮圖網址
+        function getYoutubeThumbnail(url) {
+            const id = extractVideoId(url);
+            // 使用 hqdefault 高畫質縮圖
+            return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
+        }
+
+        // 🔐 密碼驗證登入
+        window.checkPassword = function() {
+            const pwd = prompt("請輸入管理員密碼：");
+            if (pwd === "admin123") { // 請自行修改預設密碼
+                window.isAdminMode = true;
+                document.body.classList.add('admin-mode-active');
+                document.getElementById('adminArea').classList.remove('hidden');
+                document.getElementById('adminLoginBtn').className = "btn btn-primary";
+                document.getElementById('adminLoginBtn').innerText = "🛠️ 後台啟用中";
+                document.getElementById('adminLoginBtn').onclick = null;
+                window.renderTabs();
+                window.renderCards();
+            } else if (pwd !== null) {
+                alert("密碼錯誤！");
+            }
+        }
+
+        // 🔒 鎖定退出管理員
+        window.lockAdmin = function() {
+            window.isAdminMode = false;
+            document.body.classList.remove('admin-mode-active');
+            document.getElementById('adminArea').classList.add('hidden');
+            const loginBtn = document.getElementById('adminLoginBtn');
+            loginBtn.className = "btn";
+            loginBtn.innerText = "🔑 登入";
+            loginBtn.onclick = window.checkPassword;
+            window.renderTabs();
+            window.renderCards();
+        }
+
+        // ↕️ 顛倒影片順序
+        window.flipOrder = function() {
+            if (!window.currentTab || !window.db[window.currentTab]) return;
+            window.db[window.currentTab].reverse();
+            window.renderCards();
+            window.saveToStorage();
+        }
+
+        // 🗑️ 刪除目前分頁
         window.removeCurrentTab = function() {
             if (!window.currentTab) return;
-            if (confirm(`確定要永久刪除「${window.currentTab}」嗎？`)) {
-                delete window.db[window.currentTab];
-                window.customTabOrder = window.customTabOrder.filter(k => k !== window.currentTab);
+            if (confirm(`確定要永久刪除整個「${window.currentTab}」分頁與裡面的所有影片嗎？`)) {
+                const oldTab = window.currentTab;
+                delete window.db[oldTab];
+                window.customTabOrder = window.customTabOrder.filter(k => k !== oldTab);
                 
-                const remaining = window.getSortedTabsList();
-                window.currentTab = remaining.length > 0 ? remaining[0] : "";
-                window.currentSubTab = "normal";
+                const tabs = window.getSortedTabsList();
+                window.currentTab = tabs.length > 0 ? tabs[0] : "";
                 window.renderTabs();
                 window.renderSubTabs();
                 window.renderCards();
@@ -800,122 +896,51 @@
             }
         }
 
-window.importVideos = function() {
-    const textarea = document.getElementById('rawInput');
-    if (!textarea || !textarea.value.trim()) {
-        return alert('內容不能為空');
-    }
+        // ⚡ 智能匯入影片邏輯
+        window.importVideos = function() {
+            const rawText = document.getElementById('rawInput').value.trim();
+            if (!rawText) return alert("請輸入要匯入的文字內容");
 
-    const lines = textarea.value.split(/\r?\n/);
-    let count = 0;
-    let activeImportTab = window.currentTab;
+            const lines = rawText.split('\n');
+            let addedCount = 0;
+            let targetTab = window.currentTab;
 
-    lines.forEach(line => {
-        line = line.trim();
-        if (!line) return;
-
-        // ===========================
-        // Handle [Tab Name]
-        // ===========================
-        if (line.startsWith('[') && line.endsWith(']')) {
-            const targetTabName = line.substring(1, line.length - 1).trim();
-
-            if (targetTabName) {
-                if (!window.db[targetTabName]) {
-                    window.db[targetTabName] = [];
-                    window.customTabOrder.push(targetTabName);
-                }
-
-                activeImportTab = targetTabName;
-
-                if (!window.currentTab) {
-                    window.currentTab = targetTabName;
-                }
+            if (!targetTab) {
+                alert("請先建立或選擇一個主要分頁！");
+                return;
             }
 
-            return;
-        }
+            lines.forEach(line => {
+                const cleanLine = line.trim();
+                if (!cleanLine) return;
 
-        // ===========================
-        // Parse: Title + URL
-        // Supports:
-        // - single space
-        // - multiple spaces
-        // - tabs
-        // - mixed spaces/tabs
-        // ===========================
-        const match = line.match(/^(.*?)\s+(https?:\/\/\S+)$/);
+                // 簡易解析範例：預期格式為「影片名稱,網址」或「影片名稱 網址」
+                // 你可以根據自己的批次字串格式客製化此處的 RegExp
+                let title = "";
+                let url = "";
 
-        if (!match) {
-            console.warn("Invalid line:", line);
-            return;
-        }
+                if (cleanLine.includes('http')) {
+                    const idx = cleanLine.indexOf('http');
+                    url = cleanLine.substring(idx).trim();
+                    title = cleanLine.substring(0, idx).replace(/[,，\s]+/g, '').trim();
+                    
+                    if (!title) title = "未命名智能匯入影片";
 
-        const title = match[1].trim();
-        const url = match[2].trim();
+                    if (extractVideoId(url)) {
+                        if (!window.db[targetTab]) window.db[targetTab] = [];
+                        window.db[targetTab].push({ title, url });
+                        addedCount++;
+                    }
+                }
+            });
 
-        if (!title || !url) return;
-
-        if (!window.db[activeImportTab]) {
-            window.db[activeImportTab] = [];
-        }
-
-        window.db[activeImportTab].push({
-            title,
-            url
-        });
-
-        count++;
-    });
-
-    if (count > 0) {
-        window.renderTabs();
-        window.renderSubTabs();
-        window.renderCards();
-        window.saveToStorage();
-
-        textarea.value = '';
-        alert(`成功導入 ${count} 部影片！`);
-    } else {
-        alert("沒有找到可匯入的影片，請檢查格式。");
-    }
-}
-
-        window.flipOrder = function() {
-            if (!window.currentTab || !window.db[window.currentTab].length) return;
-            window.db[window.currentTab].reverse();
-            window.renderCards();
-            window.saveToStorage();
-        }
-
-        window.checkPassword = function() {
-            const password = prompt("請輸入管理員權限密碼：");
-            if (password === "3005") {
-                window.isAdminMode = true;
-                document.body.classList.add('admin-mode-active');
-                document.getElementById('adminArea').classList.remove('hidden');
-                document.getElementById('adminLoginBtn').innerText = "🔒 鎖定";
-                window.renderTabs(); 
-                window.renderSubTabs();
-                window.renderCards();
-            }
-        }
-
-        window.lockAdmin = function() {
-            window.isAdminMode = false;
-            document.body.classList.remove('admin-mode-active');
-            document.getElementById('adminArea').classList.add('hidden');
-            document.getElementById('adminLoginBtn').innerText = "🔑 登入";
-            window.renderTabs(); 
-            window.renderSubTabs();
-            window.renderCards();
-        }
-
-        window.deleteVideo = function(originalIndex) {
-            if (confirm("確定要移除這部影片嗎？")) {
-                window.db[window.currentTab].splice(originalIndex, 1);
+            if (addedCount > 0) {
+                alert(`成功解析並匯入 ${addedCount} 部影片至「${targetTab}」！`);
+                document.getElementById('rawInput').value = '';
                 window.renderCards();
                 window.saveToStorage();
+            } else {
+                alert("無法從輸入內容中辨識出合法的 YouTube 連結，請檢查格式。");
             }
         }
     </script>
