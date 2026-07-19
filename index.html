@@ -254,13 +254,20 @@ header h1 {
 }
 
 /* 主頁面橫向子分頁列 */
+/* 主頁面橫向子分頁列 */
 .main-sub-tabs {
     display: flex;
     gap: 6px;
     margin-bottom: 20px;
     flex-shrink: 0;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-y: hidden; /* 🚀 確保縱向不會出現捲軸，同時避免 iOS 剪裁到按鈕邊緣 */
+    -webkit-overflow-scrolling: touch; /* 讓 iOS 橫向滾動有順滑的彈性效果 */
+    
+    /* 🍏 修正 iOS 上可能因為 Padding 被容器裁切的問題 */
+    padding-top: 4px;
+    padding-bottom: 4px;
+    margin-top: -4px;
 }
 .main-sub-tabs::-webkit-scrollbar { display: none; }
 
@@ -274,7 +281,11 @@ header h1 {
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.15s ease;
-    white-space: nowrap;
+    
+    /* 🚀 核心修正：防止文字完整名稱被逼扁、被隱藏 */
+    white-space: nowrap;  /* 確保文字強制單行，不換行 */
+    flex-shrink: 0;       /* 🔥 極重要！防止 iOS Flexbox 強行壓縮按鈕寬度，確保文字有多長，按鈕就有多寬 */
+    display: inline-block; /* 確保按鈕能根據內容撐開完整寬度 */
 }
 .sub-tab-btn:hover { background: #cbd5e1; color: var(--text-main); }
 [data-theme="dark"] .sub-tab-btn { background: #334155; }
