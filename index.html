@@ -78,13 +78,8 @@
         }
         
         /* 隱藏滾動條 */
-        #tabsContainer::-webkit-scrollbar {
-            display: none;
-        }
-        #tabsContainer {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        #tabsContainer::-webkit-scrollbar { display: none; }
+        #tabsContainer { -ms-overflow-style: none; scrollbar-width: none; }
         
         /* 直排主分頁按鈕 */
         .tab-btn {
@@ -111,27 +106,6 @@
         .tab-btn:hover { color: var(--text-main); background: #f1f5f9; }
         .tab-btn.active { background: #eef2ff; color: var(--primary); border-left: 4px solid var(--primary); border-radius: 4px var(--radius) var(--radius) 4px; }
 
-        /* 🆕 子分頁橫向容器 (360 / Normal Filter) */
-        .sub-tab-container {
-            display: flex;
-            gap: 4px;
-            padding: 2px 4px 6px 16px; /* 縮進置中於主分頁下方 */
-            flex-shrink: 0;
-        }
-        .sub-tab-btn {
-            padding: 4px 10px;
-            font-size: 12px;
-            font-weight: 500;
-            background: #f1f5f9;
-            color: var(--text-muted);
-            border: 1px solid transparent;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        .sub-tab-btn:hover { background: #e2e8f0; color: var(--text-main); }
-        .sub-tab-btn.active { background: var(--primary); color: white; }
-
         /* 右側主內容區 */
         main {
             flex-grow: 1;
@@ -149,7 +123,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            margin-bottom: 24px;
+            margin-bottom: 16px; /* 微調間距配合下方子分頁 */
             border-bottom: 1px solid var(--border);
             padding-bottom: 16px;
             flex-shrink: 0;
@@ -172,6 +146,27 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
+        /* 🆕 主頁面橫向子分頁列 (移至影片上方，置換順序為 Normal -> 360) */
+        .main-sub-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+        .sub-tab-btn {
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            background: #e2e8f0;
+            color: var(--text-muted);
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .sub-tab-btn:hover { background: #cbd5e1; color: var(--text-main); }
+        .sub-tab-btn.active { background: var(--primary); color: white; }
 
         /* 按鈕基本樣式 */
         .btn { 
@@ -309,6 +304,11 @@
             </div>
         </header>
 
+        <!-- 🆕 主頁面影片上方的子分頁列（順序：全部 -> Normal -> 360） -->
+        <div class="main-sub-tabs" id="subTabsWrapper">
+            <!-- 由 JavaScript 動態渲染 -->
+        </div>
+
         <!-- 管理員控制區 -->
         <div id="adminArea" class="hidden">
             <h3>🛠️ 管理員控制台</h3>
@@ -363,7 +363,7 @@
 
         window.db = {}; 
         window.currentTab = "";
-        window.currentSubTab = "all"; // 🆕 預設子分類：all, 360, normal
+        window.currentSubTab = "all"; // 預設子分類：all, normal, 360
         window.isAdminMode = false;
 
         if (window.innerWidth <= 768) {
@@ -427,6 +427,7 @@
                     window.currentTab = tabs.length > 0 ? tabs[0] : "";
                 }
                 window.renderTabs();
+                window.renderSubTabs(); // 渲染主頁面子分頁
                 window.renderCards();
             } catch (error) { console.error(error); }
         });
@@ -442,55 +443,48 @@
             
             const tabs = Object.keys(window.db || {});
             const mainTitle = document.getElementById('mainTitle');
-            
-            // 更新頂部 Title 反映現時子分類
-            if(mainTitle && window.currentTab) {
-                let suffix = window.currentSubTab === '360' ? ' (360°)' : (window.currentSubTab === 'normal' ? ' (Normal)' : '');
-                mainTitle.innerText = `${window.currentTab}${suffix}`;
-            }
+            if(mainTitle && window.currentTab) mainTitle.innerText = `${window.currentTab}`;
 
             tabs.forEach((tabName) => {
                 const isSelected = tabName === window.currentTab;
-                
-                // 建立主分頁按鈕
                 const btn = document.createElement('button');
                 btn.className = `tab-btn ${isSelected ? 'active' : ''}`;
                 btn.innerText = `📁 ${tabName}`;
                 
                 btn.onclick = function() {
                     window.currentTab = tabName;
-                    window.currentSubTab = "all"; // 切換大分頁時，重設子分頁為 all
+                    window.currentSubTab = "all"; // 切換主分類時，重設為顯示全部
                     window.renderTabs();
+                    window.renderSubTabs();
                     window.renderCards();
                     window.closeSidebarOnMobile();
                 };
                 container.appendChild(btn);
+            });
+        }
 
-                // 🆕 如果呢個分頁係 Active，喺佢下方加入 360 / Normal 的子選單
-                if (isSelected) {
-                    const subContainer = document.createElement('div');
-                    subContainer.className = 'sub-tab-container';
+        // 🆕 渲染主內容區上方的橫向子分頁（交換順序：All -> Normal -> 360）
+        window.renderSubTabs = function() {
+            const subWrapper = document.getElementById('subTabsWrapper');
+            if (!subWrapper) return;
+            subWrapper.innerHTML = '';
 
-                    const subFilters = [
-                        { id: 'all', name: '全部' },
-                        { id: '360', name: '360' },
-                        { id: 'normal', name: 'Normal' }
-                    ];
+            const subFilters = [
+                { id: 'all', name: '全部' },
+                { id: 'normal', name: 'Normal' },
+                { id: '360', name: '360' }
+            ];
 
-                    subFilters.forEach(filter => {
-                        const subBtn = document.createElement('button');
-                        subBtn.className = `sub-tab-btn ${window.currentSubTab === filter.id ? 'active' : ''}`;
-                        subBtn.innerText = filter.name;
-                        subBtn.onclick = function(e) {
-                            e.stopPropagation(); // 防止觸發主分頁點擊
-                            window.currentSubTab = filter.id;
-                            window.renderTabs();
-                            window.renderCards();
-                        };
-                        subContainer.appendChild(subBtn);
-                    });
-                    container.appendChild(subContainer);
-                }
+            subFilters.forEach(filter => {
+                const subBtn = document.createElement('button');
+                subBtn.className = `sub-tab-btn ${window.currentSubTab === filter.id ? 'active' : ''}`;
+                subBtn.innerText = filter.name;
+                subBtn.onclick = function() {
+                    window.currentSubTab = filter.id;
+                    window.renderSubTabs();
+                    window.renderCards();
+                };
+                subWrapper.appendChild(subBtn);
             });
         }
 
@@ -504,7 +498,7 @@
                 return;
             }
 
-            // 🆕 根據子分頁篩選（Filter）影片數據
+            // 根據子分頁篩選（Filter）影片數據
             const originalList = window.db[window.currentTab];
             const filteredList = originalList.map((item, originalIndex) => ({ ...item, originalIndex })).filter(item => {
                 const has360 = item.title && item.title.toLowerCase().includes('360');
@@ -547,7 +541,6 @@
                     delBtn.className = 'btn btn-danger';
                     delBtn.style.height = '30px';
                     delBtn.innerText = '刪除';
-                    // 刪除時要對應原陣列的正確 index
                     delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); window.deleteVideo(item.originalIndex); };
                     actions.appendChild(delBtn);
                     info.appendChild(actions);
@@ -567,6 +560,7 @@
             window.currentSubTab = "all";
             input.value = '';
             window.renderTabs();
+            window.renderSubTabs();
             window.renderCards();
             window.saveToStorage();
         }
@@ -579,6 +573,7 @@
                 window.currentTab = remaining.length > 0 ? remaining[0] : "";
                 window.currentSubTab = "all";
                 window.renderTabs();
+                window.renderSubTabs();
                 window.renderCards();
                 window.saveToStorage();
             }
@@ -617,6 +612,7 @@
 
             if (count > 0) {
                 window.renderTabs();
+                window.renderSubTabs();
                 window.renderCards();
                 window.saveToStorage();
                 textarea.value = '';
@@ -638,6 +634,7 @@
                 document.getElementById('adminArea').classList.remove('hidden');
                 document.getElementById('adminLoginBtn').innerText = "🔒 鎖定";
                 window.renderTabs(); 
+                window.renderSubTabs();
                 window.renderCards();
             }
         }
@@ -647,6 +644,7 @@
             document.getElementById('adminArea').classList.add('hidden');
             document.getElementById('adminLoginBtn').innerText = "🔑 登入";
             window.renderTabs(); 
+            window.renderSubTabs();
             window.renderCards();
         }
 
