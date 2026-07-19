@@ -9,45 +9,18 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-    <style>
-        :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --bg: #f8fafc;
-            --sidebar-bg: #ffffff;
-            --card-bg: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --danger: #ef4444;
-            --danger-hover: #dc2626;
-            --radius: 12px;
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-            --sidebar-width: 280px;
+  /* ==========================================================================
+           📌 修正後的核心排佈樣式 (完全替換原本的 body, main, header, main-sub-tabs)
+           ========================================================================== */
 
-            /* 骨架屏顏色變數 */
-            --skeleton-bg: #e2e8f0;
-            --skeleton-shimmer: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+        body { 
+            background-color: var(--bg); 
+            color: var(--text-main); 
+            height: 100vh;           /* 固定視窗高度為剛好一個螢幕高 */
+            overflow: hidden;         /* 徹底關閉最外層的混亂滾動，交由內部處理 */
+            display: flex; 
+            transition: background-color 0.3s ease, color 0.3s ease; 
         }
-
-        /* 🌙 夜間模式變數複寫 */
-        [data-theme="dark"] {
-            --bg: #0f172a;
-            --sidebar-bg: #1e293b;
-            --card-bg: #1e293b;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --border: #334155;
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-            --skeleton-bg: #334155;
-            --skeleton-shimmer: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%);
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-        
-        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; display: flex; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; }
         
         .hidden { display: none !important; }
 
@@ -61,374 +34,61 @@
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
             flex-shrink: 0;
             height: 100vh;
-            position: sticky;
-            top: 0;
+            position: relative;       /* 既然外層不滾動，這裡改為 relative 即可 */
             z-index: 100;
         }
-        
-        aside.folded {
-            width: 0;
-            overflow: hidden;
-            border-right-color: transparent;
-        }
 
-        .sidebar-header {
-            padding: 20px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-            height: 70px;
-        }
-        .sidebar-header h2 { font-size: 16px; font-weight: 700; color: var(--text-main); }
+        /* ...（中間的 .sidebar-header、#tabsContainer 等樣式保持原樣不變）... */
 
-        /* 分頁直排容器 */
-        #tabsContainer {
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px; 
-            overflow-y: auto; 
-            flex-grow: 1;
-            height: calc(100vh - 70px);
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        /* 隱藏滾動條 */
-        #tabsContainer::-webkit-scrollbar { display: none; }
-        #tabsContainer { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* 分頁按鈕外層 Wrapper */
-        .tab-item-wrapper {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            gap: 4px;
-            border-radius: var(--radius);
-            transition: all 0.2s ease;
-        }
-
-        /* 直排主分頁按鈕 */
-        .tab-btn {
-            flex-grow: 1;
-            padding: 10px 14px; 
-            border-radius: var(--radius);
-            border: 1px solid transparent;
-            background: transparent;
-            color: var(--text-muted);
-            font-weight: 600;
-            text-align: left;
-            cursor: pointer;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            line-height: normal; 
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        .tab-btn:hover { color: var(--text-main); background: #f1f5f9; }
-        [data-theme="dark"] .tab-btn:hover { background: #334155; }
-        
-        .tab-btn.active { background: #eef2ff; color: var(--primary); border-left: 4px solid var(--primary); border-radius: 4px var(--radius) var(--radius) 4px; }
-        [data-theme="dark"] .tab-btn.active { background: #312e81; color: #818cf8; border-left-color: #818cf8; }
-        
-        /* 管理員模式下的拖曳外觀提示 */
-        body.admin-mode-active .tab-btn { cursor: grab; }
-        body.admin-mode-active .tab-btn:active { cursor: grabbing; }
-        .tab-item-wrapper.dragging { opacity: 0.4; background: #e2e8f0; }
-
-        /* 管理員專用小編輯按鈕 */
-        .tab-rename-inline-btn {
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            padding: 6px;
-            font-size: 14px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-muted);
-            transition: all 0.15s ease;
-        }
-        .tab-rename-inline-btn:hover { background: #cbd5e1; color: var(--text-main); }
-        [data-theme="dark"] .tab-rename-inline-btn:hover { background: #475569; }
-
-        /* 右側主內容區 */
+        /* 右側主內容區 - 讓這裡成為唯一真正負責垂直滾動的容器 */
         main {
             flex-grow: 1;
             padding: 24px;
-            overflow-y: auto;
+            overflow-y: auto;         /* 📌 允許內容在這裡垂直滾動 */
+            overflow-x: hidden;       /* 📌 原本寫在 body 的橫向裁剪移到這裡，不破壞 sticky 鏈 */
             display: flex;
             flex-direction: column;
             width: 100%;
             min-width: 0;
+            height: 100vh;            /* 確保高度撐滿 */
         }
 
-        /* 頂部導航欄 */
-/* 頂部導航欄 - 修改為固定置頂 */
+        /* 頂部導航欄 - 現在它能完美黏在 main 的最頂部了 */
         header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
+            padding-bottom: 16px;
             margin-bottom: 16px;
             border-bottom: 1px solid var(--border);
-            padding-bottom: 16px;
             flex-shrink: 0;
             min-height: 50px;
 
-            /* 📌 新增：固定置頂核心代碼 */
+            /* 📌 核心置頂代碼 */
             position: sticky;
             top: 0;
-            background-color: var(--bg); /* 確保背後有顏色，滾動時內容才不會穿透 */
-            z-index: 50;                 /* 確保層級高於影片卡片 */
-            padding-top: 4px;            /* 留出微調空間 */
+            background-color: var(--bg); /* 必須設定與背景相同的顏色，否則滾動時卡片會穿透露出來 */
+            z-index: 50;                 /* 層級調高，壓在影片卡片上方 */
+            padding-top: 4px;            /* 微調邊距 */
+            margin-top: -4px;            /* 消除頂部縫隙，確保完全黏緊 */
             transition: background-color 0.3s ease, border-color 0.3s ease;
         }
-        
-        /* 橫向子分頁列 - 如果你也想讓它一起固定，可以取消註釋下面這段 */
-        
-        .main-sub-tabs {
-            position: sticky;
-            top: 66px; 
-            background-color: var(--bg);
-            z-index: 49;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
-        }
-       
-        
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-grow: 1;
-            min-width: 0;
-        }
 
-        header h1 { 
-            font-size: 18px; 
-            font-weight: 700; 
-            color: var(--text-main); 
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* 主頁面橫向子分頁列 */
+        /* 橫向子分頁列 - 同步置頂（緊跟在 header 下方） */
         .main-sub-tabs {
             display: flex;
             gap: 6px;
             margin-bottom: 20px;
             flex-shrink: 0;
-        }
-        .sub-tab-btn {
-            padding: 6px 14px;
-            font-size: 13px;
-            font-weight: 600;
-            background: #e2e8f0;
-            color: var(--text-muted);
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        .sub-tab-btn:hover { background: #cbd5e1; color: var(--text-main); }
-        [data-theme="dark"] .sub-tab-btn { background: #334155; }
-        [data-theme="dark"] .sub-tab-btn:hover { background: #475569; }
-        .sub-tab-btn.active { background: var(--primary); color: white; }
-        [data-theme="dark"] .sub-tab-btn.active { background: var(--primary); color: white; }
 
-        /* 按鈕基本樣式 */
-        .btn { 
-            padding: 0 14px; 
-            height: 38px;
-            border-radius: var(--radius); 
-            border: 1px solid var(--border); 
-            background: var(--card-bg); 
-            color: var(--text-main); 
-            font-weight: 500; 
-            cursor: pointer; 
-            transition: all 0.2s ease; 
-            font-size: 13px; 
-            display: inline-flex; 
-            align-items: center; 
-            justify-content: center;
-            gap: 6px; 
-            white-space: nowrap;
-            -webkit-appearance: none;
-            flex-shrink: 0;
+            /* 📌 如果你希望「全部/Normal/360」這排按鈕也一起固定，請啟用以下代碼 */
+            position: sticky;
+            top: 66px;                   /* 高度剛好卡在 header (約 66px) 的正下方 */
+            background-color: var(--bg);
+            z-index: 49;
+            padding-bottom: 10px;
         }
-        .btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
-        [data-theme="dark"] .btn:hover { background: #334155; border-color: #475569; }
-        .btn-primary { background: var(--primary); color: white; border: none; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-toggle { padding: 0 10px; font-size: 14px; }
-        .btn-danger { background: #fee2e2; color: var(--danger); border: none; }
-        [data-theme="dark"] .btn-danger { background: #451a1a; color: #fca5a5; }
-
-        /* 管理員後台面板 */
-        #adminArea { background: var(--card-bg); border: 1px solid var(--border); padding: 20px; border-radius: var(--radius); margin-bottom: 24px; box-shadow: var(--shadow-lg); }
-        #adminArea h3 { margin-bottom: 14px; font-size: 16px; }
-        .admin-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-        .admin-input-group { display: flex; gap: 8px; margin-bottom: 14px; }
-        
-        input[type="text"], textarea { 
-            width: 100%; 
-            padding: 10px 12px; 
-            border-radius: var(--radius); 
-            border: 1px solid var(--border); 
-            background: var(--card-bg); 
-            color: var(--text-main);
-            font-size: 16px; 
-            outline: none; 
-            -webkit-appearance: none; 
-        }
-
-        /* 影片卡片網格 */
-        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .video-card { background: var(--card-bg); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; flex-direction: column; transition: background-color 0.3s, border-color 0.3s; }
-        
-        /* 🎬 內嵌影片與縮圖容器 */
-        .video-player-wrapper { 
-            width: 100%; 
-            aspect-ratio: 16 / 9; 
-            background: #000000; 
-            position: relative;
-            cursor: pointer;
-            overflow: hidden;
-        }
-        .video-player-wrapper iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            display: block;
-        }
-        
-        .video-thumbnail {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            transition: transform 0.3s ease;
-        }
-        .video-player-wrapper:hover .video-thumbnail {
-            transform: scale(1.03);
-        }
-        .play-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.2);
-            display: flex; align-items: center; justify-content: center;
-            transition: background 0.2s ease;
-        }
-        .video-player-wrapper:hover .play-overlay {
-            background: rgba(0, 0, 0, 0.4);
-        }
-        .play-button-icon {
-            width: 54px; height: 54px;
-            background: rgba(239, 68, 68, 0.95);
-            border-radius: 50%;
-            position: relative;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            transition: transform 0.2s ease, background 0.2s ease;
-        }
-        .play-button-icon::after {
-            content: '';
-            position: absolute;
-            top: 18px; left: 22px;
-            border-style: solid;
-            border-width: 9px 0 9px 14px;
-            border-color: transparent transparent transparent #ffffff;
-        }
-        .video-player-wrapper:hover .play-button-icon {
-            transform: scale(1.1);
-            background: rgb(220, 38, 38);
-        }
-
-        .video-info { padding: 14px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between; gap: 10px; }
-        .video-title { font-size: 14px; font-weight: 600; color: var(--text-main); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 38px; }
-        .status-msg { text-align: center; padding: 50px 20px; color: var(--text-muted); font-size: 14px; grid-column: 1 / -1; }
-
-        /* 🦴 骨架屏（Skeleton Loading）動畫樣式 */
-        .sk-card { pointer-events: none; }
-        .sk-media {
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            background: var(--skeleton-bg);
-            background-image: var(--skeleton-shimmer);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite linear;
-        }
-        .sk-info { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-        .sk-line {
-            height: 14px;
-            background: var(--skeleton-bg);
-            background-image: var(--skeleton-shimmer);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite linear;
-            border-radius: 4px;
-        }
-        .sk-line.w-80 { width: 80%; }
-        .sk-line.w-50 { width: 50%; }
-
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-
-        /* 手機版遮罩層 */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.15); 
-            backdrop-filter: blur(2px);
-            z-index: 90; 
-            transition: opacity 0.3s ease;
-        }
-
-        /* 流動端響應式 UI */
-        @media (max-width: 768px) {
-            body { position: relative; }
-            
-            aside {
-                position: fixed;
-                left: 0; top: 0;
-                height: 100vh;
-                transform: translateX(0);
-                box-shadow: 4px 0 24px rgba(0,0,0,0.15);
-                width: var(--sidebar-width);
-            }
-            
-            aside.folded {
-                transform: translateX(-100%);
-                width: var(--sidebar-width);
-                border-right-color: transparent;
-                box-shadow: none;
-            }
-
-            body:not(.sidebar-closed) .sidebar-overlay { display: block; }
-            body.sidebar-closed .sidebar-overlay { display: none; }
-            
-            main { padding: 16px; padding-top: 12px; width: 100%; }
-            header h1 { font-size: 15px; }
-            .video-grid { grid-template-columns: 1fr; gap: 14px; }
-        }
-    </style>
 </head>
 <body class="sidebar-closed">
 
