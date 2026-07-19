@@ -544,13 +544,13 @@ input[type="text"], textarea {
     <main>
         <header>
             <div class="header-left">
-                <button id="toggleExpandBtn" onclick="toggleSidebar()" class="btn btn-toggle hidden" title="展開側邊欄">▶ 選單</button>
+                <button id="toggleExpandBtn" onclick="toggleSidebar()" class="btn btn-toggle hidden" title="展開側邊欄">▶</button>
                 <h1 id="mainTitle">加拿大影片庫</h1>
             </div>
             <div class="header-right">
                 <!-- 🌓 夜間模式切換按鈕 -->
-                <button id="themeToggleBtn" onclick="toggleTheme()" class="btn" title="切換深淺模式">🌙 夜間</button>
-                <button id="adminLoginBtn" onclick="checkPassword()" class="btn">🔑 管理員登入</button>
+                <button id="themeToggleBtn" onclick="toggleTheme()" class="btn" title="切換深淺模式">🌙</button>
+                <button id="adminLoginBtn" onclick="checkPassword()" class="btn">🔑</button>
             </div>
         </header>
 
@@ -649,9 +649,9 @@ input[type="text"], textarea {
             const btn = document.getElementById('themeToggleBtn');
             if (!btn) return;
             if (theme === 'dark') {
-                btn.innerText = "☀️ 淺色";
+                btn.innerText = "☀️";
             } else {
-                btn.innerText = "🌙 夜間";
+                btn.innerText = "🌙";
             }
         }
 
