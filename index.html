@@ -32,6 +32,7 @@
     --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
     --sidebar-width: 280px;
+    --header-height: 80px; /* 預留給頂欄的高度 */
 
     /* 骨架屏顏色變數 */
     --skeleton-bg: #e2e8f0;
@@ -59,12 +60,14 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
 }
 
+/* 🔓 恢復 Body 的滾動能力 */
 body { 
     background-color: var(--bg); 
     color: var(--text-main); 
     min-height: 100vh; 
     display: flex; 
-    overflow: hidden; 
+    overflow-x: hidden;
+    overflow-y: auto; /* 確保主網頁一定可以滾動 */
     transition: background-color 0.3s ease, color 0.3s ease; 
 }
 
@@ -182,16 +185,15 @@ body.admin-mode-active .tab-btn:active { cursor: grabbing; }
 .tab-rename-inline-btn:hover { background: #cbd5e1; color: var(--text-main); }
 [data-theme="dark"] .tab-rename-inline-btn:hover { background: #475569; }
 
-/* 🚀 右側主內容區（確保頂部固定的核心設定） */
+/* 🚀 右側主內容區 */
 main {
     flex-grow: 1;
     padding: 0 24px 24px 24px;
     padding-left: calc(24px + env(safe-area-inset-left));
     padding-right: calc(24px + env(safe-area-inset-right));
     
-    position: relative; /* 建立置頂定位上下文 */
-    overflow-y: auto; /* 讓內容區單獨滾動 */
-    -webkit-overflow-scrolling: touch; /* iOS 彈性滾動 */
+    /* 👇 核心修正：推開內容，避免影片被 Fixed 頂欄遮擋 */
+    padding-top: calc(var(--header-height) + 16px); 
     
     display: flex;
     flex-direction: column;
@@ -199,10 +201,13 @@ main {
     min-width: 0;
 }
 
-/* 📌 100% 固定頂部導航欄 */
+/* 📌 100% 絕對釘死頂部導航欄（Fixed 方案防鎖死） */
 header {
-    position: sticky;
+    position: fixed;
     top: 0;
+    right: 0;
+    /* 根據側邊欄是否摺疊，自動動態計算寬度 */
+    left: var(--sidebar-width); 
     z-index: 50;
 
     display: flex;
@@ -210,16 +215,19 @@ header {
     justify-content: space-between;
     gap: 12px;
 
-    margin-bottom: 16px;
-    padding: 24px 0 16px;
-    padding-top: calc(24px + env(safe-area-inset-top)); /* 解決 iOS 頂部安全區問題 */
-    min-height: 50px;
-    flex-shrink: 0;
+    height: var(--header-height);
+    padding: 0 24px;
+    padding-top: env(safe-area-inset-top); /* 解決 iOS 頂部安全區問題 */
 
-    background: var(--bg); /* 重要：阻擋向上碌嘅影片卡片 */
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
 
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    transition: background-color 0.3s ease, border-color 0.3s ease, left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 當側邊欄摺疊時，頂欄自動拉寬至全螢幕 */
+aside.folded + main header {
+    left: 0;
 }
             
 .header-left {
@@ -423,7 +431,7 @@ input[type="text"], textarea {
 }
 .status-msg { text-align: center; padding: 50px 20px; color: var(--text-muted); font-size: 14px; grid-column: 1 / -1; }
 
-/* 🦴 效能優化版骨架屏（Skeleton Loading） - 行 GPU 硬件加速 */
+/* 🦴 效能優化版骨架屏（Skeleton Loading） */
 .sk-card { pointer-events: none; }
 .sk-media {
     width: 100%;
@@ -452,7 +460,6 @@ input[type="text"], textarea {
 .sk-line.w-80 { width: 80%; }
 .sk-line.w-50 { width: 50%; }
 
-/* 使用 transform 代替 background-position，避免引發排版重繪（Repaint） */
 @keyframes shimmerTransform {
     100% { transform: translateX(100%); }
 }
@@ -488,13 +495,16 @@ input[type="text"], textarea {
         box-shadow: none;
     }
 
+    /* 手機版強制將 Header 固定拉滿 */
+    header { left: 0 !important; padding: 0 16px; height: 64px; }
+    main { padding: 0 16px 16px; width: 100%; padding-top: calc(64px + 16px + env(safe-area-inset-top)); }
+    
     body:not(.sidebar-closed) .sidebar-overlay { display: block; }
     body.sidebar-closed .sidebar-overlay { display: none; }
     
-    main { padding: 0 16px 16px; width: 100%; }
-    header { padding-top: calc(12px + env(safe-area-inset-top)); }
     header h1 { font-size: 15px; }
     .video-grid { grid-template-columns: 1fr; gap: 14px; }
+}
 }
 </style>
 </head>
