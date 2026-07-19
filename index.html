@@ -123,7 +123,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            margin-bottom: 16px; /* 微調間距配合下方子分頁 */
+            margin-bottom: 16px;
             border-bottom: 1px solid var(--border);
             padding-bottom: 16px;
             flex-shrink: 0;
@@ -147,7 +147,7 @@
             text-overflow: ellipsis;
         }
 
-        /* 🆕 主頁面橫向子分頁列 (移至影片上方，置換順序為 Normal -> 360) */
+        /* 主頁面橫向子分頁列 */
         .main-sub-tabs {
             display: flex;
             gap: 6px;
@@ -304,7 +304,7 @@
             </div>
         </header>
 
-        <!-- 🆕 主頁面影片上方的子分頁列（順序：全部 -> Normal -> 360） -->
+        <!-- 主頁面影片上方的子分頁列 -->
         <div class="main-sub-tabs" id="subTabsWrapper">
             <!-- 由 JavaScript 動態渲染 -->
         </div>
@@ -363,7 +363,7 @@
 
         window.db = {}; 
         window.currentTab = "";
-        window.currentSubTab = "all"; // 預設子分類：all, normal, 360
+        window.currentSubTab = "normal"; // 🆕 核心優化：將預設子分類改為 "normal"
         window.isAdminMode = false;
 
         if (window.innerWidth <= 768) {
@@ -427,7 +427,7 @@
                     window.currentTab = tabs.length > 0 ? tabs[0] : "";
                 }
                 window.renderTabs();
-                window.renderSubTabs(); // 渲染主頁面子分頁
+                window.renderSubTabs(); 
                 window.renderCards();
             } catch (error) { console.error(error); }
         });
@@ -453,7 +453,7 @@
                 
                 btn.onclick = function() {
                     window.currentTab = tabName;
-                    window.currentSubTab = "all"; // 切換主分類時，重設為顯示全部
+                    window.currentSubTab = "normal"; // 🆕 切換主分類時，亦重設為預設的 "normal"
                     window.renderTabs();
                     window.renderSubTabs();
                     window.renderCards();
@@ -463,7 +463,6 @@
             });
         }
 
-        // 🆕 渲染主內容區上方的橫向子分頁（交換順序：All -> Normal -> 360）
         window.renderSubTabs = function() {
             const subWrapper = document.getElementById('subTabsWrapper');
             if (!subWrapper) return;
@@ -557,7 +556,7 @@
             if (!name || window.db[name]) return alert('名稱不正確或已存在');
             window.db[name] = [];
             window.currentTab = name;
-            window.currentSubTab = "all";
+            window.currentSubTab = "normal";
             input.value = '';
             window.renderTabs();
             window.renderSubTabs();
@@ -571,7 +570,7 @@
                 delete window.db[window.currentTab];
                 const remaining = Object.keys(window.db || {});
                 window.currentTab = remaining.length > 0 ? remaining[0] : "";
-                window.currentSubTab = "all";
+                window.currentSubTab = "normal";
                 window.renderTabs();
                 window.renderSubTabs();
                 window.renderCards();
