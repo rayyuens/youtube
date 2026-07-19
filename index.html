@@ -70,7 +70,7 @@
             padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 4px; 
+            gap: 6px; 
             overflow-y: auto; 
             flex-grow: 1;
             height: calc(100vh - 70px);
@@ -81,9 +81,19 @@
         #tabsContainer::-webkit-scrollbar { display: none; }
         #tabsContainer { -ms-overflow-style: none; scrollbar-width: none; }
         
+        /* 🆕 分頁按鈕外層 Wrapper (用於放置按鈕與編輯 icon) */
+        .tab-item-wrapper {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            gap: 4px;
+            border-radius: var(--radius);
+            transition: all 0.2s ease;
+        }
+
         /* 直排主分頁按鈕 */
         .tab-btn {
-            width: 100%;
+            flex-grow: 1;
             padding: 10px 14px; 
             border-radius: var(--radius);
             border: 1px solid transparent;
@@ -92,7 +102,6 @@
             font-weight: 600;
             text-align: left;
             cursor: pointer;
-            transition: all 0.2s ease;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -101,10 +110,32 @@
             align-items: center;
             line-height: normal; 
             box-sizing: border-box;
-            flex-shrink: 0; 
+            user-select: none;
+            -webkit-user-select: none;
         }
         .tab-btn:hover { color: var(--text-main); background: #f1f5f9; }
         .tab-btn.active { background: #eef2ff; color: var(--primary); border-left: 4px solid var(--primary); border-radius: 4px var(--radius) var(--radius) 4px; }
+        
+        /* 管理員模式下的拖曳外觀提示 */
+        body.admin-mode-active .tab-btn { cursor: grab; }
+        body.admin-mode-active .tab-btn:active { cursor: grabbing; }
+        .tab-item-wrapper.dragging { opacity: 0.4; background: #e2e8f0; }
+
+        /* 🆕 管理員專用小編輯按鈕 */
+        .tab-rename-inline-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 6px;
+            font-size: 14px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: all 0.15s ease;
+        }
+        .tab-rename-inline-btn:hover { background: #cbd5e1; color: var(--text-main); }
 
         /* 右側主內容區 */
         main {
@@ -363,7 +394,7 @@
 
         window.db = {}; 
         window.currentTab = "";
-        window.currentSubTab = "normal"; // 🆕 核心優化：將預設子分類改為 "normal"
+        window.currentSubTab = "normal"; 
         window.isAdminMode = false;
 
         if (window.innerWidth <= 768) {
@@ -436,6 +467,31 @@
             dbRef.set(window.db).catch((err) => console.error("同步失敗", err));
         }
 
+        // 🆕 核心優化：彈性封裝命名修改邏輯
+        window.renameTabAction = function(oldName) {
+            const newName = prompt(`請輸入「${oldName}」的新名稱：`, oldName);
+            if (newName && newName.trim() && newName.trim() !== oldName) {
+                const cleanName = newName.trim();
+                if (window.db[cleanName]) {
+                    alert('該分頁名稱已存在！');
+                    return;
+                }
+                const newDb = {};
+                Object.keys(window.db).forEach(k => {
+                    if (k === oldName) {
+                        newDb[cleanName] = window.db[oldName];
+                    } else {
+                        newDb[k] = window.db[k];
+                    }
+                });
+                window.db = newDb;
+                if (window.currentTab === oldName) window.currentTab = cleanName;
+                window.renderTabs();
+                window.saveToStorage();
+            }
+        }
+
+        // 🆕 核心修正：將「長按與拖曳功能」限縮在 Admin Mode 內觸發
         window.renderTabs = function() {
             const container = document.getElementById('tabsContainer');
             if (!container) return;
@@ -447,20 +503,113 @@
 
             tabs.forEach((tabName) => {
                 const isSelected = tabName === window.currentTab;
+                
+                // 建立一個包覆按鈕的外容器
+                const itemWrapper = document.createElement('div');
+                itemWrapper.className = 'tab-item-wrapper';
+                itemWrapper.dataset.tabName = tabName;
+
                 const btn = document.createElement('button');
                 btn.className = `tab-btn ${isSelected ? 'active' : ''}`;
                 btn.innerText = `📁 ${tabName}`;
                 
+                // 點擊切換主分類
                 btn.onclick = function() {
                     window.currentTab = tabName;
-                    window.currentSubTab = "normal"; // 🆕 切換主分類時，亦重設為預設的 "normal"
+                    window.currentSubTab = "normal"; 
                     window.renderTabs();
                     window.renderSubTabs();
                     window.renderCards();
                     window.closeSidebarOnMobile();
                 };
-                container.appendChild(btn);
+
+                itemWrapper.appendChild(btn);
+
+                // ⭐ 唯有管理員模式（isAdminMode）才具備以下編輯與拖曳功能
+                if (window.isAdminMode) {
+                    itemWrapper.setAttribute('draggable', 'true');
+
+                    // 🆕 新增：在分頁旁邊直接塞入一個 Rename 編輯按鈕
+                    const renameBtn = document.createElement('button');
+                    renameBtn.className = 'tab-rename-inline-btn';
+                    renameBtn.innerHTML = '✏️';
+                    renameBtn.title = '重新命名此分頁';
+                    renameBtn.onclick = function(e) {
+                        e.stopPropagation(); // 防止觸發外層按鈕點擊
+                        window.renameTabAction(tabName);
+                    };
+                    itemWrapper.appendChild(renameBtn);
+
+                    // --- 長按重新命名機制 ---
+                    let longPressTimer;
+                    const startLongPress = () => {
+                        longPressTimer = setTimeout(() => {
+                            if (navigator.vibrate) navigator.vibrate(50);
+                            window.renameTabAction(tabName);
+                        }, 500);
+                    };
+                    const cancelLongPress = () => { clearTimeout(longPressTimer); };
+
+                    btn.addEventListener('mousedown', startLongPress);
+                    btn.addEventListener('touchstart', startLongPress, { passive: true });
+                    btn.addEventListener('mouseup', cancelLongPress);
+                    btn.addEventListener('mouseleave', cancelLongPress);
+                    btn.addEventListener('touchend', cancelLongPress);
+                    btn.addEventListener('touchmove', cancelLongPress);
+
+                    // --- 拖曳排序事件 ---
+                    itemWrapper.addEventListener('dragstart', (e) => {
+                        itemWrapper.classList.add('dragging');
+                        e.dataTransfer.setData('text/plain', tabName);
+                    });
+
+                    itemWrapper.addEventListener('dragend', () => {
+                        itemWrapper.classList.remove('dragging');
+                    });
+                }
+
+                container.appendChild(itemWrapper);
             });
+
+            // 唯有管理員模式才啟用 Dragover 計算
+            if (window.isAdminMode) {
+                container.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    const afterElement = getDragAfterElement(container, e.clientY);
+                    const draggingElement = document.querySelector('.tab-item-wrapper.dragging');
+                    if (!draggingElement) return;
+                    
+                    if (afterElement == null) {
+                        container.appendChild(draggingElement);
+                    } else {
+                        container.insertBefore(draggingElement, afterElement);
+                    }
+                });
+
+                container.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const currentUiOrder = Array.from(container.querySelectorAll('.tab-item-wrapper')).map(el => el.dataset.tabName);
+                    const reorderedDb = {};
+                    currentUiOrder.forEach(name => {
+                        if (window.db[name]) reorderedDb[name] = window.db[name];
+                    });
+                    window.db = reorderedDb;
+                    window.saveToStorage(); 
+                });
+            }
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.tab-item-wrapper:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
         window.renderSubTabs = function() {
@@ -497,13 +646,12 @@
                 return;
             }
 
-            // 根據子分頁篩選（Filter）影片數據
             const originalList = window.db[window.currentTab];
             const filteredList = originalList.map((item, originalIndex) => ({ ...item, originalIndex })).filter(item => {
                 const has360 = item.title && item.title.toLowerCase().includes('360');
                 if (window.currentSubTab === '360') return has360;
                 if (window.currentSubTab === 'normal') return !has360;
-                return true; // 'all'
+                return true; 
             });
 
             if (filteredList.length === 0) {
@@ -630,6 +778,7 @@
             const password = prompt("請輸入管理員權限密碼：");
             if (password === "3005") {
                 window.isAdminMode = true;
+                document.body.classList.add('admin-mode-active');
                 document.getElementById('adminArea').classList.remove('hidden');
                 document.getElementById('adminLoginBtn').innerText = "🔒 鎖定";
                 window.renderTabs(); 
@@ -640,6 +789,7 @@
 
         window.lockAdmin = function() {
             window.isAdminMode = false;
+            document.body.classList.remove('admin-mode-active');
             document.getElementById('adminArea').classList.add('hidden');
             document.getElementById('adminLoginBtn').innerText = "🔑 登入";
             window.renderTabs(); 
