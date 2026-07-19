@@ -65,31 +65,31 @@
         }
         .sidebar-header h2 { font-size: 16px; font-weight: 700; color: var(--text-main); }
 
-        /* ↕️ 核心優化：確保分頁直排容器可以順暢地上下滾動 */
+        /* 分頁直排容器 */
         #tabsContainer {
             padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            overflow-y: auto; /* 超出高度時自動允許上下滾動 */
+            gap: 4px; /* 🤏 調緊分頁之間的間距 */
+            overflow-y: auto; 
             flex-grow: 1;
-            height: calc(100vh - 70px); /* 扣除 header 後的剩餘所有高度 */
-            -webkit-overflow-scrolling: touch; /* 確保 iOS Safari 滾動有原生滑順同彈性效果 */
+            height: calc(100vh - 70px);
+            -webkit-overflow-scrolling: touch;
         }
         
-        /* 隱藏滾動條（Scrollbar），等介面更精簡，但依然可以滾動 */
+        /* 隱藏滾動條 */
         #tabsContainer::-webkit-scrollbar {
             display: none;
         }
         #tabsContainer {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
         
         /* 直排分頁按鈕 */
         .tab-btn {
             width: 100%;
-            padding: 12px 14px;
+            padding: 10px 14px; /* 🤏 減少上下 Padding 讓按鈕更緊湊 */
             border-radius: var(--radius);
             border: 1px solid transparent;
             background: transparent;
@@ -105,9 +105,8 @@
             display: flex;
             align-items: center;
             line-height: normal; 
-            height: 44px;
             box-sizing: border-box;
-            flex-shrink: 0; /* 確保按鈕本身唔會因為滾動容器而被壓縮變形 */
+            flex-shrink: 0; 
         }
         .tab-btn:hover { color: var(--text-main); background: #f1f5f9; }
         .tab-btn.active { background: #eef2ff; color: var(--primary); border-left: 4px solid var(--primary); border-radius: 4px var(--radius) var(--radius) 4px; }
@@ -199,7 +198,7 @@
         .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .video-card { background: var(--card-bg); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; flex-direction: column; }
         
-        /* 🎬 內嵌影片容器優化 */
+        /* 🎬 內嵌影片容器 */
         .video-player-wrapper { 
             width: 100%; 
             aspect-ratio: 16 / 9; 
