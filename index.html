@@ -435,19 +435,14 @@
             }
         }
 
-        function convertToEmbedUrl(url) {
-            if (!url) return '';
-            let videoId = null;
-            try {
-                if (url.includes('youtu.be/')) {
-                    videoId = url.split('youtu.be/')[1].split(/[?#]/)[0];
-                } else if (url.includes('v=')) {
-                    videoId = url.split('v=')[1].split('&')[0].split(/[?#]/)[0];
-                } else if (url.includes('embed/')) {
-                    return url;
-                }
-            } catch(e) { console.error(e); }
-            return videoId ? `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0` : url;
+        function convertToEmbedUrl(url, autoplay = false) {
+            const videoId = extractVideoId(url);
+            if (!videoId) return url;
+            let embedUrl = `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0`;
+            if (autoplay) {
+                embedUrl += '&autoplay=1';
+            }
+            return embedUrl;
         }
 
         // 監聽 Firebase 資料庫狀態
@@ -687,16 +682,17 @@
             });
         }
 
+        // 核心渲染：改為「縮圖模式」，點擊才載入 iframe
         window.renderCards = function() {
             const wrapper = document.getElementById('videoWrapper');
             if (!wrapper) return;
             wrapper.innerHTML = '';
-
+        
             if (!window.db || !window.currentTab || !window.db[window.currentTab] || window.db[window.currentTab].length === 0) {
                 wrapper.innerHTML = `<div class="status-msg">📭 此分頁目前空空如也</div>`;
                 return;
             }
-
+        
             const originalList = window.db[window.currentTab];
             const filteredList = originalList.map((item, originalIndex) => ({ ...item, originalIndex })).filter(item => {
                 const has360 = item.title && item.title.toLowerCase().includes('360');
@@ -704,34 +700,70 @@
                 if (window.currentSubTab === 'normal') return !has360;
                 return true; 
             });
-
+        
             if (filteredList.length === 0) {
                 wrapper.innerHTML = `<div class="status-msg">📭 沒有符合條件的影片</div>`;
                 return;
             }
-
+        
             filteredList.forEach((item) => {
                 const card = document.createElement('div');
                 card.className = 'video-card';
-
+        
                 const playerWrapper = document.createElement('div');
                 playerWrapper.className = 'video-player-wrapper';
                 
-                const iframe = document.createElement('iframe');
-                iframe.src = convertToEmbedUrl(item.url);
-                iframe.setAttribute('allowfullscreen', 'true');
-                iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
-                
-                playerWrapper.appendChild(iframe);
+                // 獲取縮圖
+                const thumbUrl = getYoutubeThumbnail(item.url);
+        
+                if (thumbUrl) {
+                    // 1. 建立縮圖模式
+                    const img = document.createElement('img');
+                    img.className = 'video-thumbnail';
+                    img.src = thumbUrl;
+                    img.alt = item.title;
+                    img.loading = 'lazy'; // 延遲加載縮圖，進一步優化性能
+                    
+                    // 建立播放按鈕遮罩
+                    const overlay = document.createElement('div');
+                    overlay.className = 'play-overlay';
+                    const playIcon = document.createElement('div');
+                    playIcon.className = 'play-button-icon';
+                    
+                    overlay.appendChild(playIcon);
+                    playerWrapper.appendChild(img);
+                    playerWrapper.appendChild(overlay);
+        
+                    // 點擊事件：動態將縮圖替換為真正的 iframe
+                    playerWrapper.onclick = function() {
+                        playerWrapper.onclick = null; // 移除點擊事件，避免重複觸發
+                        playerWrapper.innerHTML = ''; // 清空縮圖與遮罩
+                        
+                        const iframe = document.createElement('iframe');
+                        iframe.src = convertToEmbedUrl(item.url, true); // 傳入 true 開啟自動播放
+                        iframe.setAttribute('allowfullscreen', 'true');
+                        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                        
+                        playerWrapper.appendChild(iframe);
+                    };
+                } else {
+                    // 如果不是常規 YouTube 連結，直接加載 iframe 作為備用方案
+                    const iframe = document.createElement('iframe');
+                    iframe.src = convertToEmbedUrl(item.url);
+                    iframe.setAttribute('allowfullscreen', 'true');
+                    iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                    playerWrapper.appendChild(iframe);
+                }
+        
                 card.appendChild(playerWrapper);
-
+        
                 const info = document.createElement('div');
                 info.className = 'video-info';
                 const title = document.createElement('div');
                 title.className = 'video-title';
                 title.innerText = item.title || '未命名影片';
                 info.appendChild(title);
-
+        
                 if (window.isAdminMode) {
                     const actions = document.createElement('div');
                     actions.className = 'card-actions';
@@ -739,7 +771,11 @@
                     delBtn.className = 'btn btn-danger';
                     delBtn.style.height = '30px';
                     delBtn.innerText = '刪除';
-                    delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); window.deleteVideo(item.originalIndex); };
+                    delBtn.onclick = (e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        window.deleteVideo(item.originalIndex); 
+                    };
                     actions.appendChild(delBtn);
                     info.appendChild(actions);
                 }
